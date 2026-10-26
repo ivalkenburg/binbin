@@ -33,10 +33,10 @@ The browser test server uses temporary storage and port 8086. Its test credentia
 GitHub workflow changes can be checked with [actionlint](https://github.com/rhysd/actionlint):
 
 ```sh
-actionlint .github/workflows/ci.yml
+actionlint .github/workflows/release.yml
 ```
 
-Container publishing waits for every validation job and uses the GitHub repository path automatically. See [the release guide](docs/releases.md) for tags, package visibility, and deployment.
+Publishing happens only when a GitHub Release is published and uses the GitHub repository path automatically. See [the release guide](docs/releases.md) for tags, package visibility, and deployment.
 
 ## Changes
 

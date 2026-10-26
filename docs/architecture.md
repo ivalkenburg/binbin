@@ -29,7 +29,7 @@ scripts/            Repository and container verification utilities
 .github/workflows/  Continuous integration
 ```
 
-Cargo manifests, the Dockerfile, and Compose configuration stay at the repository root. The web package owns its npm manifests, Vite, TypeScript, shadcn, ESLint, Prettier, and Playwright configuration in `web/`. Its composite GitHub setup action lives in `web/ci/setup/`; workflow entry points remain in `.github/workflows/`.
+Cargo manifests, the Dockerfile, and Compose configuration stay at the repository root. The web package owns its npm manifests, Vite, TypeScript, shadcn, ESLint, Prettier, and Playwright configuration in `web/`. Its composite GitHub setup action lives in `web/ci/setup/`; the release workflow entry point remains in `.github/workflows/`.
 
 ## Rust boundaries
 

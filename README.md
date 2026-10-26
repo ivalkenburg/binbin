@@ -8,7 +8,7 @@ See [architecture and repository layout](docs/architecture.md), [development ins
 
 ## Run with Docker
 
-GitHub CI publishes multi-platform images to `ghcr.io/<owner>/<repository>` after checks pass. The default branch produces `edge`; version tags produce release images and stable releases update `latest`. See [GitHub setup, releases, and running a published image](docs/releases.md). For a local build:
+Publishing a GitHub Release builds multi-platform images for `ghcr.io/<owner>/<repository>` (tagged with the version and `latest`), attaches CLI binaries, and updates the Homebrew tap. See [GitHub setup, releases, and running a published image](docs/releases.md). For a local build:
 
 ```sh
 docker compose build
@@ -84,7 +84,7 @@ bash scripts/docker-smoke.sh binbin:local
 
 The React browser client uses shadcn/ui Base UI components themed with the supplied light/dark theme. Run `npm --prefix web run dev` for hot reload against a local server on port 8080. Production assets are built by Vite and embedded in the Rust binary.
 
-The browser tests start an isolated fixture on port 8086, with temporary data and test-only credentials. Rust tests cover authentication, CSRF, permissions, publication, checksums, ZIP integrity, deadlines, concurrent allowances/reservations, cleanup, HTTP ranges, token lifecycle, and real CLI workflows. Browser tests check every page and transient state at desktop, tablet, mobile, and 320px widths in both light and dark modes, including download feedback, theme persistence, long filenames, and document/container overflow. Focused browser regressions cover delayed navigation, upload cancellation, repeated download clicks, denied storage, password changes, and keyboard focus. CI also runs Rust checks on Linux, macOS, and Windows, verifies the Rust 1.88 minimum, and runs a container smoke test.
+The browser tests start an isolated fixture on port 8086, with temporary data and test-only credentials. Rust tests cover authentication, CSRF, permissions, publication, checksums, ZIP integrity, deadlines, concurrent allowances/reservations, cleanup, HTTP ranges, token lifecycle, and real CLI workflows. Browser tests check every page and transient state at desktop, tablet, mobile, and 320px widths in both light and dark modes, including download feedback, theme persistence, long filenames, and document/container overflow. Focused browser regressions cover delayed navigation, upload cancellation, repeated download clicks, denied storage, password changes, and keyboard focus. The release workflow runs the Rust tests and a container smoke test before publishing.
 
 Configure `BINBIN_DATA` (default `data`), `BINBIN_BIND` (default `0.0.0.0:8080`), `BINBIN_PUBLIC_URL` (default `http://localhost:8080`), and `RUST_LOG`. `/healthz` is the health endpoint. [HTTP API documentation](docs/api.md) describes the client protocol.
 

@@ -1,0 +1,17 @@
+/target/
+/data/
+/web/node_modules/
+/web/test-results/
+/web/playwright-report/
+/.impeccable/*
+!/.impeccable/design.json
+*.sqlite*
+.env
+.env.*
+!.env.example
+.DS_Store
+*.binbin-transfer.json
+/web/dist/
+
+binbin-backup*.tgz
+*.binbin-transfer.lock

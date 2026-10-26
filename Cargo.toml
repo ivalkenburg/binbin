@@ -1,0 +1,44 @@
+[workspace]
+resolver = "3"
+members = ["crates/binbin-core", "crates/binbin-server", "crates/binbin-cli"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+
+[workspace.dependencies]
+anyhow = "1"
+argon2 = "0.5"
+axum = "0.8"
+base64 = "0.22"
+clap = { version = "4", features = ["derive", "env"] }
+directories = { version = "6" }
+fs2 = "0.4.3"
+keyring = { version = "3.6", features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
+rand = "0.8"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
+rpassword = "7"
+rusqlite = { version = "0.37", features = ["bundled"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "fs", "io-util", "signal", "time", "sync"] }
+tokio-util = { version = "0.7", features = ["io"] }
+tower = { version = "0.5", features = ["limit", "util"] }
+tower-http = { version = "0.6", features = ["catch-panic"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+url = "2"
+zip = { version = "8", default-features = false }
+
+tempfile = "3"
+http-body-util = "0.1"
+include_dir = "0.7"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[profile.release]
+lto = "thin"
+strip = true

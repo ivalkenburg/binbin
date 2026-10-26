@@ -1,0 +1,15 @@
+services:
+  binbin:
+    image: ${BINBIN_IMAGE:?Set BINBIN_IMAGE to a published ghcr.io image or digest}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      BINBIN_PUBLIC_URL: ${BINBIN_PUBLIC_URL:-http://localhost:8080}
+      RUST_LOG: binbin=info
+    volumes:
+      - binbin-data:/data
+    init: true
+    stop_grace_period: 30s
+volumes:
+  binbin-data:

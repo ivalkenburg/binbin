@@ -1,0 +1,33 @@
+[package]
+name = "binbin-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+binbin-core = { path = "../binbin-core" }
+anyhow.workspace = true
+clap.workspace = true
+directories.workspace = true
+fs2.workspace = true
+keyring.workspace = true
+reqwest.workspace = true
+rpassword.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+tempfile.workspace = true
+tokio.workspace = true
+url.workspace = true
+
+[dev-dependencies]
+axum.workspace = true
+binbin-server = { path = "../binbin-server" }
+
+[[bin]]
+name = "binbin"
+path = "src/main.rs"

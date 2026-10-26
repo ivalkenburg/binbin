@@ -1,0 +1,165 @@
+use super::{
+    Result,
+    auth::identity,
+    extractors::{BodyBytes, Json, Query},
+    work,
+};
+use axum::{
+    extract::{Path, State},
+    http::HeaderMap,
+};
+use binbin_core::{
+    App,
+    models::{EditShare, Identity, NewShare, ShareView, StoredFile},
+};
+use serde::Deserialize;
+use serde_json::{Value, json};
+pub(super) async fn shares(State(app): State<App>, h: HeaderMap) -> Result<Json<Vec<ShareView>>> {
+    work(app, move |app| {
+        let a = identity(&app, &h, false)?;
+        Ok(Json(app.list_shares(&a)?))
+    })
+    .await
+}
+pub(super) async fn create_share(
+    State(app): State<App>,
+    h: HeaderMap,
+    Json(n): Json<NewShare>,
+) -> Result<Json<ShareView>> {
+    work(app, move |app| {
+        let a = identity(&app, &h, true)?;
+        Ok(Json(app.create_share(&a, n)?))
+    })
+    .await
+}
+pub(super) async fn inspect(
+    State(app): State<App>,
+    h: HeaderMap,
+    Path(id): Path<String>,
+) -> Result<Json<ShareView>> {
+    work(app, move |app| {
+        let a = identity(&app, &h, false)?;
+        Ok(Json(app.inspect(&a, &id)?))
+    })
+    .await
+}
+#[derive(Deserialize)]
+pub(super) struct Offset {
+    offset: u64,
+}
+pub(super) async fn upload(
+    State(app): State<App>,
+    h: HeaderMap,
+    Path(id): Path<String>,
+    Query(q): Query<Offset>,
+    BodyBytes(body): BodyBytes,
+) -> Result<Json<StoredFile>> {
+    work(app, move |app| {
+        let a = identity(&app, &h, true)?;
+        if let Some(prefix) = h
+            .get("x-binbin-prefix-sha256")
+            .and_then(|v| v.to_str().ok())
+        {
+            app.verify_upload_prefix(&a, &id, prefix)?;
+        }
+        Ok(Json(app.upload(&a, &id, q.offset, &body)?))
+    })
+    .await
+}
+pub(super) async fn upload_proofs(
+    State(app): State<App>,
+    h: HeaderMap,
+    Path(id): Path<String>,
+) -> Result<Json<Vec<String>>> {
+    work(app, move |app| {
+        let a = identity(&app, &h, false)?;
+        Ok(Json(app.upload_proofs(&a, &id)?))
+    })
+    .await
+}
+pub(super) async fn publish(
+    State(app): State<App>,
+    h: HeaderMap,
+    Path(id): Path<String>,
+) -> Result<Json<ShareView>> {
+    work(app, move |app| {
+        let a = identity(&app, &h, true)?;
+        Ok(Json(app.publish(&a, &id)?))
+    })
+    .await
+}
+pub(super) async fn edit(
+    State(app): State<App>,
+    h: HeaderMap,
+    Path(id): Path<String>,
+    Json(n): Json<EditShare>,
+) -> Result<Json<ShareView>> {
+    work(app, move |app| {
+        let a = identity(&app, &h, true)?;
+        Ok(Json(app.edit(&a, &id, n)?))
+    })
+    .await
+}
+pub(super) async fn revoke(
+    State(app): State<App>,
+    h: HeaderMap,
+    Path(id): Path<String>,
+) -> Result<Json<Value>> {
+    work(app, move |app| {
+        let a = identity(&app, &h, true)?;
+        app.revoke(&a, &id)?;
+        Ok(Json(json!({"ok":true})))
+    })
+    .await
+}
+#[derive(Deserialize)]
+pub(super) struct Password {
+    password: Option<String>,
+}
+pub(super) async fn public_share(
+    State(app): State<App>,
+    Path(id): Path<String>,
+    Json(n): Json<Password>,
+) -> Result<Json<Value>> {
+    work(app, move |app| {
+        Ok(Json(app.public_share(&id, n.password.as_deref())?))
+    })
+    .await
+}
+#[derive(Deserialize)]
+pub(super) struct NewTransfer {
+    resource: String,
+    password: Option<String>,
+    key: String,
+}
+pub(super) async fn public_transfer(
+    State(app): State<App>,
+    Path(id): Path<String>,
+    Json(n): Json<NewTransfer>,
+) -> Result<Json<Value>> {
+    transfer_response(app, None, id, n).await
+}
+pub(super) async fn management_transfer(
+    State(app): State<App>,
+    h: HeaderMap,
+    Path(id): Path<String>,
+    Json(n): Json<NewTransfer>,
+) -> Result<Json<Value>> {
+    let a = work(app.clone(), move |app| identity(&app, &h, true)).await?;
+    transfer_response(app, Some(a), id, n).await
+}
+pub(super) async fn transfer_response(
+    app: App,
+    a: Option<Identity>,
+    id: String,
+    n: NewTransfer,
+) -> Result<Json<Value>> {
+    work(app, move |app| {
+        let (raw, t) =
+            app.new_transfer(&id, &n.resource, n.password.as_deref(), &n.key, a.as_ref())?;
+        Ok(Json(
+            json!({"token":raw,"url":format!("{}/d/{raw}",app.public_url),"expires":t.expires}),
+        ))
+    })
+    .await
+}

@@ -1,0 +1,139 @@
+name: CI
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+jobs:
+  rust:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: ./web/ci/setup
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev pkg-config
+      - run: cargo fmt --all --check
+      - run: cargo clippy --locked --workspace --all-targets -- -D warnings
+      - run: cargo test --locked --workspace --all-targets
+  msrv:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: ./web/ci/setup
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.88"
+      - uses: Swatinem/rust-cache@v2
+      - run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev pkg-config
+      - run: cargo check --locked --workspace --all-targets
+  browser-and-container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: ./web/ci/setup
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev pkg-config
+      - run: npm run check
+        working-directory: web
+      - run: npx playwright install --with-deps chromium
+        working-directory: web
+      - run: npm test
+        working-directory: web
+      - run: docker build -t binbin:test .
+      - run: bash scripts/docker-smoke.sh binbin:test
+
+  publish-image:
+    name: Publish container image
+    needs: [rust, msrv, browser-and-container]
+    if: >-
+      github.event_name != 'pull_request' &&
+      (github.ref == format('refs/heads/{0}', github.event.repository.default_branch) ||
+       startsWith(github.ref, 'refs/tags/v'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Validate release version
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          python3 - <<'PYTHON'
+          import os
+          import re
+          import tomllib
+          from pathlib import Path
+          version = tomllib.loads(Path("Cargo.toml").read_text())["workspace"]["package"]["version"]
+          if re.fullmatch(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)", version) is None:
+              raise SystemExit("Release version must use numeric MAJOR.MINOR.FIX")
+          if os.environ["RELEASE_TAG"] != f"v{version}":
+              raise SystemExit(f"Release tag must match Cargo.toml: v{version}")
+          PYTHON
+      - name: Set image name
+        id: image
+        shell: bash
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+      - name: Generate image tags and OCI labels
+        id: metadata
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6
+        with:
+          images: ${{ steps.image.outputs.name }}
+          tags: |
+            type=edge,branch=${{ github.event.repository.default_branch }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,format=long
+          labels: |
+            org.opencontainers.image.title=Binbin
+            org.opencontainers.image.description=Private file sharing with resumable uploads and expiring links
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+      - name: Sign in to GitHub Container Registry
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and publish
+        id: build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          cache-from: type=gha,scope=binbin-image
+          cache-to: type=gha,scope=binbin-image,mode=max
+          provenance: mode=max
+          sbom: true
+      - name: Record published image
+        env:
+          IMAGE: ${{ steps.image.outputs.name }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+          TAGS: ${{ steps.metadata.outputs.tags }}
+        run: |
+          printf '### Published image\n\n`%s@%s`\n\nTags:\n```text\n%s\n```\n' \
+            "$IMAGE" "$DIGEST" "$TAGS" >> "$GITHUB_STEP_SUMMARY"

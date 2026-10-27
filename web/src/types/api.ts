@@ -32,7 +32,10 @@ export interface Share {
   id: string;
   title: string;
   state: string;
+  version: number;
+  server_time: number;
   files: StoredFile[];
+  removed_files: { file: StoredFile; removed_at: number }[];
   original_size: number;
   created: number;
   expires: number | null;

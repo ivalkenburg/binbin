@@ -1,6 +1,6 @@
 import { Panel } from "@/components/common";
 import { useState } from "react";
-import { File } from "lucide-react";
+import { File, LogIn } from "lucide-react";
 import { useApp } from "@/app/context";
 import { useTask } from "@/hooks/use-task";
 import { api } from "@/lib/api";
@@ -62,6 +62,7 @@ export function LoginPage() {
           type="submit"
           disabled={pending}
         >
+          <LogIn aria-hidden="true" />
           {pending ? "Signing in…" : "Sign in"}
         </Button>
         <p className="form-error" id="login-error" role="alert">

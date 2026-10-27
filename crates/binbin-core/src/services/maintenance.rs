@@ -48,6 +48,37 @@ impl App {
             let mut live_versions = HashMap::new();
             let mut ids = HashSet::new();
             for mut s in all::<Share>(db, "share")? {
+                if s.state == "draft" {
+                    self.purge_removed_in(db, &mut s, false)?;
+                    // A crash between creating an added file and committing its
+                    // metadata can leave an empty orphan inside an existing draft.
+                    let known: HashSet<_> = self
+                        .files_in(db, &s.id)?
+                        .into_iter()
+                        .map(|f| f.id)
+                        .chain(
+                            self.removed_files_in(db, &s.id)?
+                                .into_iter()
+                                .map(|f| f.file.id),
+                        )
+                        .collect();
+                    let directory = self.root.join(&s.id);
+                    if directory.exists() {
+                        for entry in fs::read_dir(directory)? {
+                            let entry = entry?;
+                            let name = entry.file_name().to_string_lossy().into_owned();
+                            if entry.file_type()?.is_file()
+                                && name.len() == 43
+                                && name
+                                    .bytes()
+                                    .all(|b| b.is_ascii_alphanumeric() || b"_-".contains(&b))
+                                && !known.contains(&name)
+                            {
+                                fs::remove_file(entry.path())?;
+                            }
+                        }
+                    }
+                }
                 let state = self.state(&s);
                 let draft_dead = s.state == "draft" && s.created + DAY <= now;
                 let dead =
@@ -70,6 +101,9 @@ impl App {
                         }
                         for f in self.files_in(db, &s.id)? {
                             remove(db, "file", &f.id)?;
+                        }
+                        for f in self.removed_files_in(db, &s.id)? {
+                            remove(db, "removed_file", &f.file.id)?;
                         }
                         s.reserved = 0;
                         s.zip_hash = None;

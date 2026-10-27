@@ -4,6 +4,7 @@
 @import "./layout.css";
 @import "./components.css";
 @import "./responsive.css";
+@import "./uploads.css";
 
 @custom-variant dark (&:is(.dark *));
 @theme inline {

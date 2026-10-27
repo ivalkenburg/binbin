@@ -30,8 +30,8 @@ use downloads::download;
 use middleware::{Guard, guard};
 use settings::{settings, update_settings};
 use shares::{
-    create_share, edit, inspect, management_transfer, public_share, public_transfer, publish,
-    revoke, shares, upload, upload_proofs,
+    create_share, edit, edit_files, image_preview, inspect, management_transfer, public_share,
+    public_transfer, publish, revoke, shares, upload, upload_proofs,
 };
 use tokens::{create_token, delete_token, tokens};
 use users::{create_user, update_user, users};
@@ -74,12 +74,14 @@ pub(crate) fn router(app: App) -> Router {
         .route("/api/shares", get(shares).post(create_share))
         .route("/api/shares/{id}", get(inspect).patch(edit).delete(revoke))
         .route("/api/shares/{id}/publish", post(publish))
+        .route("/api/shares/{id}/files", patch(edit_files))
         .route("/api/shares/{id}/transfers", post(management_transfer))
         .route(
             "/api/files/{id}",
             patch(upload).layer(DefaultBodyLimit::max(CHUNK)),
         )
         .route("/api/files/{id}/proofs", get(upload_proofs))
+        .route("/api/files/{id}/preview", get(image_preview))
         .route("/api/public/{id}", post(public_share))
         .route("/api/public/{id}/transfers", post(public_transfer))
         .route("/d/{token}", get(download))

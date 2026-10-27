@@ -20,7 +20,7 @@ async function chooseFile(page) {
   });
 }
 
-test("draft creation owns navigation before its first response", async ({
+test("draft creation survives navigation before its first response", async ({
   page,
 }) => {
   const errors = [];
@@ -39,13 +39,18 @@ test("draft creation owns navigation before its first response", async ({
   await page.getByRole("button", { name: "Upload files", exact: true }).click();
   await entered.promise;
   await page.getByRole("link", { name: "Settings", exact: true }).click();
-  await expect(page).toHaveURL(/#new$/);
-  await expect(page.locator("#new-share")).toBeVisible();
+  await expect(page).toHaveURL(/#settings$/);
+  await expect(page.locator("#active-uploads")).toContainText(
+    "Creating private draft",
+  );
+  const completed = page.waitForResponse(
+    (response) =>
+      response.request().method() === "PATCH" &&
+      response.url().includes("?offset="),
+  );
   waiting.release();
-  await expect(
-    page.getByRole("button", { name: "Publish share", exact: true }),
-  ).toBeVisible();
-  await page.getByRole("link", { name: "Settings", exact: true }).click();
+  await completed;
+  await expect(page).toHaveURL(/#settings$/);
   await expect(
     page.getByRole("heading", { name: "Settings", exact: true }),
   ).toBeVisible();

@@ -11,7 +11,7 @@ npm run check
 npm test
 ```
 
-Development proxies API and download requests to the Rust server at `http://localhost:8080`. Build the assets with `npm run build` before compiling the server; it embeds `dist/`. Run Rust and Docker commands from the repository root. Root-level npm commands use `npm --prefix web …`.
+Development proxies API and download requests to the Rust server at `http://localhost:8080`. The footer version is read from `workspace.package.version` in the root Cargo.toml at build time. Build the assets with `npm run build` before compiling the server; it embeds `dist/`. Run Rust and Docker commands from the repository root. Root-level npm commands use `npm --prefix web …`.
 
 Browser tests build the assets and start the isolated Rust fixture on port 8086 with temporary storage. Install Chromium once with `npx playwright install chromium`.
 

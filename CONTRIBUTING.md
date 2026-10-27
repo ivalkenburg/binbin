@@ -42,4 +42,6 @@ Publishing happens only when a GitHub Release is published and uses the GitHub r
 
 Keep business rules in application services and transport policy in the server. Keep filesystem and SQL details behind the core storage boundary. Add regression tests for bugs and meaningful behavior changes; a code move does not need a duplicate test. Preserve the public HTTP response format and persisted records unless a change includes a deliberate migration.
 
+Released SQL migration files are immutable. Add the next numbered migration for schema changes; the startup migration runner applies only newer versions in a transaction and refuses databases from a newer application. Include upgrade coverage that preserves existing accounts, shares, upload offsets, and file contents.
+
 Never add credentials or runtime data to the repository. Use the application's hidden prompts and documented token-input options for local setup and headless clients.

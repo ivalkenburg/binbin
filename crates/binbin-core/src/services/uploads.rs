@@ -99,15 +99,27 @@ impl App {
             let settings: Settings = get(db, "settings", "instance")?.unwrap_or_default();
             self.check_limits(&settings, share.days, share.limit)?;
             let files = self.files_in(db, id)?;
+            if files.is_empty() {
+                return Err(bad("Add at least one file before publishing"));
+            }
             if files.iter().any(|f| f.offset != f.size) {
                 return Err(bad("Finish uploading every file before publishing"));
             }
             share.state = "preparing".into();
+            self.purge_removed_in(db, &mut share, true)?;
             put(db, "share", id, &share)?;
             Ok((share, files))
         })?;
         // Immutable files can be hashed and archived without holding SQLite's write lock.
         let result = (|| {
+            s = self.authenticated_db(a, |db| {
+                let mut current: Share = get(db, "share", id)?.ok_or_else(unavailable)?;
+                if current.state != "preparing" {
+                    return Err(unavailable());
+                }
+                self.purge_removed_in(db, &mut current, false)?;
+                Ok(current)
+            })?;
             for f in &mut files {
                 let mut input = File::open(self.file_path(f))?;
                 if input.metadata()?.len() != f.size {

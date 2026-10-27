@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { X } from "lucide-react";
+import { Download, RotateCcw, X } from "lucide-react";
+import { IconButton } from "./icon-button";
 import { Button } from "./ui/button";
 import { Alert, AlertTitle, AlertDescription, AlertAction } from "./ui/alert";
 import { useApp } from "@/app/context";
@@ -55,6 +56,7 @@ export function DownloadButton({
         })
       }
     >
+      <Download aria-hidden="true" />
       {children || "Download"}
     </Button>
   );
@@ -101,18 +103,18 @@ export function DownloadFeedback({
                   retry(resource);
                 }}
               >
+                <RotateCcw aria-hidden="true" className="inline-icon" />
                 Retry this download
               </a>
             </div>
             <AlertAction>
-              <Button
+              <IconButton
                 size="icon-xs"
-                variant="ghost"
-                aria-label="Dismiss download message"
+                label="Dismiss download message"
                 onClick={() => dismiss(resource)}
               >
                 <X aria-hidden="true" />
-              </Button>
+              </IconButton>
             </AlertAction>
           </Alert>
         );

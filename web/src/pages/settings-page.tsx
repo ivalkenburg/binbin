@@ -1,3 +1,5 @@
+import { Check, Copy, KeyRound, Trash2 } from "lucide-react";
+import { IconButton } from "@/components/icon-button";
 import { RefreshError, Panel, Heading, Loading } from "@/components/common";
 import { useRef, useState } from "react";
 import { useRemote } from "@/hooks/use-remote";
@@ -52,6 +54,7 @@ export function SettingsPage() {
             required
           />
           <Button variant="default" type="submit" disabled={pending}>
+            <KeyRound aria-hidden="true" />
             Create token
           </Button>
         </form>
@@ -66,7 +69,8 @@ export function SettingsPage() {
                 readOnly
                 value={secret}
               />
-              <Button
+              <IconButton
+                label="Copy token"
                 variant="outline"
                 data-action="copy-token"
                 onClick={() =>
@@ -79,13 +83,14 @@ export function SettingsPage() {
                   })
                 }
               >
-                Copy token
-              </Button>
+                <Copy aria-hidden="true" />
+              </IconButton>
               <Button
                 variant="outline"
                 data-action="hide-token"
                 onClick={() => setSecret("")}
               >
+                <Check aria-hidden="true" />
                 I’ve saved it
               </Button>
             </div>
@@ -112,6 +117,7 @@ export function SettingsPage() {
                 })
               }
             >
+              <Trash2 aria-hidden="true" />
               Revoke
             </Button>
           </div>

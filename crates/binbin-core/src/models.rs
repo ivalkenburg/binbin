@@ -94,6 +94,20 @@ pub struct NewFile {
     pub size: u64,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RemovedFile {
+    pub file: StoredFile,
+    pub removed_at: i64,
+}
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct EditFiles {
+    #[serde(default)]
+    pub add: Vec<NewFile>,
+    #[serde(default)]
+    pub remove: Vec<String>,
+    #[serde(default)]
+    pub restore: Vec<String>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewShare {
     pub title: String,
     pub files: Vec<NewFile>,
@@ -115,5 +129,7 @@ pub struct ShareView {
     #[serde(flatten)]
     pub share: serde_json::Value,
     pub files: Vec<StoredFile>,
+    pub removed_files: Vec<RemovedFile>,
+    pub server_time: i64,
     pub url: String,
 }

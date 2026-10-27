@@ -18,7 +18,7 @@ All metadata responses are JSON. Errors have `{ "error": "message" }` and an app
 
 ## Private shares
 
-`GET /api/shares` lists accessible shares. `GET /api/shares/{id}` returns one, including upload offsets. Administrator listings include all owners. Views omit password hashes and expose `password_protected` instead.
+`GET /api/shares` lists accessible shares. `GET /api/shares/{id}` returns one, including upload offsets. Administrator listings include all owners. Views omit password hashes and expose `password_protected` instead. Private views include `server_time` (Unix seconds) for relative Undo timing; successful collection edits increment `version`, so clients can discard stale membership snapshots.
 
 `POST /api/shares` reserves a private draft:
 
@@ -35,6 +35,20 @@ All metadata responses are JSON. Errors have `{ "error": "message" }` and an app
 Specify `days` and `limit` explicitly; null means unlimited. The browser and CLI read configured defaults first. Filenames must be unique basenames, at most 240 UTF-8 bytes; paths and control characters are rejected.
 
 `PATCH /api/files/{file_id}?offset=0` uploads raw bytes, at most 8 MiB. The result has the committed offset. A mismatched offset returns 409: inspect the draft before retrying. `GET /api/files/{file_id}/proofs` returns SHA-256 digests of committed 8 MiB segments (last segment can be shorter). An empty PATCH with `X-Binbin-Prefix-SHA256` verifies the entire committed prefix for CLI resumption.
+
+`PATCH /api/shares/{id}/files` atomically edits an unexpired private draft. Omit unused arrays:
+
+```json
+{
+  "add": [{ "name": "another.png", "size": 1024 }],
+  "remove": ["FILE_ID"],
+  "restore": []
+}
+```
+
+The response is the updated share. Existing file IDs and committed offsets stay intact. Removed files leave `files` immediately and appear in `removed_files` as `{ "file": { ... }, "removed_at": UNIX_SECONDS }` for eight seconds. Restore within that window to keep their uploaded bytes. Their bytes and names remain reserved during Undo; cleanup releases them afterward. Publication commits all pending removals. Drafts may temporarily contain no files, but publication requires at least one complete file. File edits enforce ownership, filename uniqueness, count, per-file/share sizes, and storage capacity under the same transaction as reservations. Lowered administrator caps still allow edits that reduce or preserve the existing count, sizes, and reservation; newly added or restored files must meet the current per-file cap. Published and preparing shares reject collection edits.
+
+`GET /api/files/{file_id}/preview` streams a complete image to its owner or an administrator, without a transfer credential or download charge. PNG, JPEG, GIF, WebP, and AVIF are identified from file signatures; other contents return 415. Incomplete, removed, expired, and inaccessible files cannot be previewed. Responses use the detected image MIME type, inline disposition, no-store caching, and nosniff. Public recipients have no preview endpoint.
 
 `POST /api/shares/{id}/publish` validates contents and prepares any ZIP. It returns the published share and URL. Archive creation can take time for large batches. `PATCH /api/shares/{id}` accepts `title`, nullable Unix-second `expires`, nullable total `limit`, `change_password`, and nullable `password`. `DELETE /api/shares/{id}` permanently revokes the share or removes a draft.
 

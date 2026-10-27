@@ -51,10 +51,7 @@ footer {
   min-width: 0;
 }
 .theme-control {
-  width: 100px;
-}
-.theme-control [data-slot="native-select-wrapper"] {
-  width: 100%;
+  flex-shrink: 0;
 }
 .account-name {
   max-width: 110px;

@@ -24,7 +24,7 @@ Self-hosted behind an HTTPS reverse proxy. Linux, macOS, and Windows CLI. Single
 
 ## Capabilities and Constraints
 
-Private resumable drafts; explicit publication; prebuilt uncompressed ZIPs; storage reservations; configurable limits; dashboard; named API tokens; 30-day minimal history. See ../README.md and specification.md for the agreed lifecycle and test coverage. No previews, S3, scanning, OIDC, recovery bin, notifications, or per-user quotas in this release.
+Private editable resumable drafts; uploader image previews; additive file selection and screenshot paste; explicit publication; prebuilt uncompressed ZIPs; storage reservations; configurable limits; dashboard; named API tokens; 30-day minimal history. See ../README.md and specification.md for the agreed lifecycle and test coverage. No recipient previews, S3, scanning, OIDC, recovery bin, notifications, or per-user quotas in this release.
 
 ## Brand Commitments
 

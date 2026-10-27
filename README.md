@@ -26,7 +26,7 @@ The container runs as UID/GID **10001**. A named volume is configured automatica
 
 1. Sign in, choose New share, and select or drop files.
 2. Set a title, lifetime, download allowance, and optional password (at least 12 characters).
-3. Upload, then review and explicitly publish. Paused drafts can resume with the original files for 24 hours after draft creation.
+3. Upload, then review and explicitly publish. Add or remove files until publication, preview images, or paste screenshots. Uploads continue while navigating Binbin. After a refresh, select only unfinished originals to resume. Private drafts last 24 hours after creation.
 4. Copy the share link. Recipients do not need accounts.
 
 Each public file or ZIP transfer consumes one allowance **when its body starts**, rather than when the link is viewed. Its retry credential permits resumption of that same resource for 24 hours from first transfer, without another charge. A count-exhausted share retains content for outstanding transfers. Time expiry, password changes, and revocation block further requests; an already-streaming response may finish.
@@ -52,7 +52,7 @@ Create a named API token in browser Settings and paste it into `login`'s hidden 
 
 For headless use, provide `--token-file /run/secrets/binbin`, `--token-stdin`, or `--prompt-token`. These modes never save another token copy. No silent plaintext fallback exists. Only the server URL is saved in the configuration file. Logging out deletes the local credential; revoke the server token separately in Settings. API tokens expire after one year.
 
-Use `--no-expiry` for unlimited lifetime, `--password` to prompt for a share password, and `--json` for machine-readable output. The CLI reports a private draft ID before uploading; repeat the upload with `--resume DRAFT_ID` and the complete original file set to continue. Both clients compare uploaded prefixes before resuming.
+Use `--no-expiry` for unlimited lifetime, `--password` to prompt for a share password, and `--json` for machine-readable output. The CLI reports a private draft ID before uploading; repeat the upload with `--resume DRAFT_ID` and the complete current file set to continue. Both clients compare uploaded prefixes before resuming.
 
 Repeat a failed download command with the same output path to resume. A persistent `.binbin-transfer.lock` file prevents simultaneous downloads from writing the same output; leave it in place while a download may be running. A private `.binbin-transfer.json` sidecar preserves its credential and idempotency key; remove it only when abandoning the transfer. Successful downloads verify SHA-256 and remove the sidecar. If verification fails, remove only the corrupt output and keep its sidecar to retry with the same credential. Existing output files without a matching sidecar are never overwritten. `fetch --password` prompts for a protected share's password.
 

@@ -23,6 +23,7 @@ fn serve(path: &str) -> Response {
         Some("html") => "text/html; charset=utf-8",
         Some("css") => "text/css; charset=utf-8",
         Some("js") => "text/javascript; charset=utf-8",
+        Some("svg") => "image/svg+xml",
         _ => return StatusCode::NOT_FOUND.into_response(),
     };
     ([(header::CONTENT_TYPE, content_type)], file.contents()).into_response()

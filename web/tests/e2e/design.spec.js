@@ -141,7 +141,9 @@ test("every page and transient state fits its viewport", async ({
     await route.continue();
   });
   await page.getByRole("button", { name: "Upload files", exact: true }).click();
-  await expect(page.locator("#upload-label")).toContainText("Uploading");
+  await expect(
+    page.locator(".queued-file[data-state=uploading]"),
+  ).toBeVisible();
   await checkLayout(page, "upload-progress");
   const committed = page.waitForResponse(
     (response) =>
@@ -407,20 +409,43 @@ test("every page and transient state fits its viewport", async ({
   await context.close();
 });
 
-test("theme selection overrides the system and persists on navigation", async ({
+test("theme selection cycles one icon and persists on navigation", async ({
   page,
 }) => {
   await page.goto("/");
-  await page.getByLabel("Color theme").selectOption("dark");
+  const theme = page.locator("#theme");
+  await expect(page.getByRole("button", { name: /^Color theme:/ })).toHaveCount(
+    1,
+  );
+  await expect(theme).toHaveAccessibleName(
+    "Color theme: System. Switch to Light.",
+  );
+  await expect(theme.locator(".lucide-monitor")).toBeVisible();
+  await theme.click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(theme.locator(".lucide-sun")).toBeVisible();
+  await theme.focus();
+  await page.keyboard.press("Enter");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(theme).toHaveAccessibleName(
+    "Color theme: Dark. Switch to System.",
+  );
+  await expect(theme.locator(".lucide-moon")).toBeVisible();
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  await page.getByLabel("Color theme").selectOption("light");
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(theme.locator(".lucide-moon")).toBeVisible();
+  await theme.click();
+  await expect(page.locator("html")).not.toHaveAttribute("data-theme");
+  await expect(theme.locator(".lucide-monitor")).toBeVisible();
+  await theme.click();
   await login(page);
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await page.getByRole("link", { name: "Settings", exact: true }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-  await page.getByLabel("Color theme").selectOption("system");
+  await theme.click();
+  await theme.click();
   await expect(page.locator("html")).not.toHaveAttribute("data-theme");
+  await expect(theme).toHaveAccessibleName(
+    "Color theme: System. Switch to Light.",
+  );
 });

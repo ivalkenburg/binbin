@@ -2,6 +2,29 @@ use crate::error::{Error, Result};
 use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Serialize, de::DeserializeOwned};
 
+pub(crate) fn migrate(db: &mut Connection) -> Result<()> {
+    const MIGRATIONS: &[(u32, &str)] = &[
+        (1, include_str!("../../migrations/0001_initial.sql")),
+        (2, include_str!("../../migrations/0002_draft_removals.sql")),
+    ];
+    let transaction = db.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
+    let current: u32 = transaction.pragma_query_value(None, "user_version", |row| row.get(0))?;
+    if current > MIGRATIONS.last().unwrap().0 {
+        return Err(Error(
+            500,
+            "Database was created by a newer version of Binbin".into(),
+        ));
+    }
+    for &(version, sql) in MIGRATIONS {
+        if version > current {
+            transaction.execute_batch(sql)?;
+            transaction.pragma_update(None, "user_version", version)?;
+        }
+    }
+    transaction.commit()?;
+    Ok(())
+}
+
 pub fn get<T: DeserializeOwned>(db: &Connection, kind: &str, id: &str) -> Result<Option<T>> {
     let s: Option<String> = db
         .query_row(

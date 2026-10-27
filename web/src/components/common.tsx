@@ -1,3 +1,4 @@
+import { CircleAlert, RotateCcw } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
 import { cn } from "@/lib/utils";
@@ -9,16 +10,25 @@ import { errorMessage } from "@/lib/api";
 export function Heading({
   title,
   description,
+  titleSuffix,
   children,
 }: {
   title: string;
   description: string;
+  titleSuffix?: ReactNode;
   children?: ReactNode;
 }) {
   return (
     <div className="page-heading">
       <div>
-        <h1>{title}</h1>
+        {titleSuffix ? (
+          <div className="heading-title">
+            <h1 title={title}>{title}</h1>
+            {titleSuffix}
+          </div>
+        ) : (
+          <h1 title={title}>{title}</h1>
+        )}
         <p>{description}</p>
       </div>
       {children}
@@ -34,11 +44,17 @@ export const statusLabels: Record<string, string> = {
   revoked: "Removed",
   abandoned: "Abandoned",
 };
-export function Status({ state }: { state: string }) {
+export function Status({
+  state,
+  className,
+}: {
+  state: string;
+  className?: string;
+}) {
   return (
     <Badge
       variant={state === "active" ? "default" : "secondary"}
-      className={`badge ${state}`}
+      className={cn("badge", state, className)}
     >
       {statusLabels[state] || state}
     </Badge>
@@ -47,6 +63,7 @@ export function Status({ state }: { state: string }) {
 export function Loading({ error }: { error?: unknown }) {
   return error ? (
     <Alert variant="destructive">
+      <CircleAlert aria-hidden="true" />
       <AlertDescription className="min-w-0 [overflow-wrap:anywhere]">
         <p>{errorMessage(error)}</p>
       </AlertDescription>
@@ -95,6 +112,7 @@ export function RefreshError({
         {errorMessage(error)}
       </AlertDescription>
       <Button variant="outline" className="mt-2 w-fit" onClick={retry}>
+        <RotateCcw aria-hidden="true" />
         Try again
       </Button>
     </Alert>

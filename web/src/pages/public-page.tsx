@@ -1,7 +1,8 @@
+import { FileTypeIcon } from "@/components/file-preview";
 import { LinkButton } from "@/components/link-button";
 import { Panel, Loading } from "@/components/common";
 import { useEffect, useState } from "react";
-import { File } from "lucide-react";
+import { File, Download, RotateCcw, Unlock } from "lucide-react";
 import { useApp } from "@/app/context";
 import { useRemote } from "@/hooks/use-remote";
 import { useTask } from "@/hooks/use-task";
@@ -96,6 +97,7 @@ export function PublicPage() {
               autoFocus
             />
             <Button variant="default" className="full" type="submit">
+              <Unlock aria-hidden="true" />
               Open share
             </Button>
           </form>
@@ -110,6 +112,7 @@ export function PublicPage() {
             unavailable.
           </p>
           <Button variant="default" onClick={reload}>
+            <RotateCcw aria-hidden="true" />
             Try again
           </Button>
         </Panel>
@@ -124,7 +127,7 @@ export function PublicPage() {
           </p>
           {recovered.map((item) => (
             <div className="detail-file" key={item.resource}>
-              <File aria-hidden="true" />
+              <FileTypeIcon name={item.label} />
               <div>
                 <strong title={item.label}>{item.label}</strong>
                 <small>Previously started transfer</small>
@@ -140,6 +143,7 @@ export function PublicPage() {
                   );
                 }}
               >
+                <Download aria-hidden="true" />
                 Retry download
               </LinkButton>
             </div>
@@ -166,6 +170,7 @@ export function PublicPage() {
               {retryError}
             </p>
             <Button variant="outline" onClick={reload}>
+              <RotateCcw aria-hidden="true" />
               Try again
             </Button>
           </>
@@ -200,7 +205,7 @@ export function PublicPage() {
       </div>
       {share.files.map((file) => (
         <div className="detail-file" key={file.id}>
-          <File aria-hidden="true" />
+          <FileTypeIcon name={file.name} />
           <div>
             <strong title={file.name}>{file.name}</strong>
             <small>{bytes(file.size)}</small>

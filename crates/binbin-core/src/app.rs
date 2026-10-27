@@ -31,10 +31,10 @@ impl App {
             use std::os::unix::fs::PermissionsExt;
             fs::set_permissions(root.as_ref(), fs::Permissions::from_mode(0o700))?;
         }
-        let db = Connection::open(root.as_ref().join("binbin.sqlite"))?;
+        let mut db = Connection::open(root.as_ref().join("binbin.sqlite"))?;
         db.busy_timeout(std::time::Duration::from_secs(30))?;
         db.execute_batch("PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;")?;
-        db.execute_batch(include_str!("../migrations/0001_initial.sql"))?;
+        crate::storage::database::migrate(&mut db)?;
         if get::<Settings>(&db, "settings", "instance")?.is_none() {
             put(&db, "settings", "instance", &Settings::default())?;
         }

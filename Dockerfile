@@ -2,6 +2,7 @@ FROM node:24-bookworm-slim AS web
 WORKDIR /build/web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
+COPY Cargo.toml ../Cargo.toml
 COPY web/ ./
 RUN npm run build
 

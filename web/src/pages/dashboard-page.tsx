@@ -1,3 +1,4 @@
+import { FileTypeIcon } from "@/components/file-preview";
 import {
   RefreshError,
   Heading,
@@ -8,7 +9,7 @@ import {
 import { LinkButton } from "@/components/link-button";
 import { Progress } from "@/components/ui/progress";
 import { useState } from "react";
-import { File, Upload, Plus } from "lucide-react";
+import { Files, Upload, Plus, Search, HardDrive } from "lucide-react";
 import { useRemote } from "@/hooks/use-remote";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,6 +51,7 @@ export function DashboardPage() {
         }}
       />
       <div className="storage-line">
+        <HardDrive aria-hidden="true" />
         <span>
           {bytes(limits.data.used)} of{" "}
           {bytes(limits.data.settings.storage_limit)} reserved
@@ -63,6 +65,7 @@ export function DashboardPage() {
       <div className="list-tools">
         <Label className="search">
           <span className="sr-only">Search shares</span>
+          <Search className="search-icon" aria-hidden="true" />
           <Input
             id="search"
             type="search"
@@ -98,7 +101,11 @@ export function DashboardPage() {
         {filtered.map((s) => (
           <a className="share-row" href={`#share/${s.id}`} key={s.id}>
             <div className="file-title">
-              <File aria-hidden="true" />
+              {s.files.length === 1 ? (
+                <FileTypeIcon name={s.files[0].name} />
+              ) : (
+                <Files aria-hidden="true" />
+              )}
               <span>
                 <strong>{s.title}</strong>
                 <small>
@@ -127,7 +134,7 @@ export function DashboardPage() {
 
               href="#new"
             >
-              {" "}
+              <Plus aria-hidden="true" />
               Create a share
             </LinkButton>
           </div>

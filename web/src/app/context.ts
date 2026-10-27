@@ -1,21 +1,15 @@
 import { createContext, useContext } from "react";
-import type { Session, Share, User } from "@/types/api";
-import type { UploadProgress } from "@/transfers/upload";
+import type { Session, User } from "@/types/api";
+import type { UploadManager } from "@/transfers/upload-manager";
 export interface AppContextValue {
   user: User | null | undefined;
   csrf: string;
-  notice: { message: string; error: boolean } | null;
-  notify: (message: string, error?: boolean) => void;
+  notify: (message: string, error?: boolean, href?: string) => void;
   signedIn: (session: Session) => void;
   signedOut: () => void;
   logout: () => Promise<void>;
-  busy: boolean;
-  progress: UploadProgress | null;
-  pauseUpload: () => void;
-  upload: (
-    load: (signal: AbortSignal) => Promise<Share>,
-    files: File[],
-  ) => Promise<void>;
+  uploads: UploadManager;
+  navigate: (hash: string) => void;
 }
 export const AppContext = createContext<AppContextValue | null>(null);
 export function useApp() {

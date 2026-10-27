@@ -10,10 +10,42 @@ use axum::{
 };
 use binbin_core::{
     App,
-    models::{EditShare, Identity, NewShare, ShareView, StoredFile},
+    models::{EditFiles, EditShare, Identity, NewShare, ShareView, StoredFile},
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
+pub(super) async fn edit_files(
+    State(app): State<App>,
+    h: HeaderMap,
+    Path(id): Path<String>,
+    Json(edit): Json<EditFiles>,
+) -> Result<Json<ShareView>> {
+    work(app, move |app| {
+        let actor = identity(&app, &h, true)?;
+        Ok(Json(app.edit_files(&actor, &id, edit)?))
+    })
+    .await
+}
+pub(super) async fn image_preview(
+    State(app): State<App>,
+    h: HeaderMap,
+    Path(id): Path<String>,
+) -> Result<axum::response::Response> {
+    let (file, mime, size) = work(app, move |app| {
+        let actor = identity(&app, &h, false)?;
+        app.image_preview(&actor, &id)
+    })
+    .await?;
+    use tokio::io::AsyncReadExt;
+    Ok(axum::response::Response::builder()
+        .header(axum::http::header::CONTENT_TYPE, mime)
+        .header(axum::http::header::CONTENT_LENGTH, size)
+        .header(axum::http::header::CONTENT_DISPOSITION, "inline")
+        .body(axum::body::Body::from_stream(
+            tokio_util::io::ReaderStream::new(tokio::fs::File::from_std(file).take(size)),
+        ))
+        .unwrap())
+}
 pub(super) async fn shares(State(app): State<App>, h: HeaderMap) -> Result<Json<Vec<ShareView>>> {
     work(app, move |app| {
         let a = identity(&app, &h, false)?;

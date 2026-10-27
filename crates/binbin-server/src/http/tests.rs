@@ -125,6 +125,79 @@ async fn request(
     let bytes = r.into_body().collect().await.unwrap().to_bytes().to_vec();
     (status, h, bytes)
 }
+
+#[tokio::test]
+async fn editable_draft_and_private_preview_http_contracts() {
+    let fixture = Fixture::new();
+    let draft = fixture.draft(None, false);
+    let id = draft.share["id"].as_str().unwrap();
+    let (token, _) = fixture
+        .app
+        .issue(&fixture.actor.user, "http", false)
+        .unwrap();
+    let bearer = format!("Bearer {token}");
+    let authorization = [("authorization", bearer.as_str())];
+    let path = format!("/api/shares/{id}/files");
+    assert_eq!(
+        request(
+            &fixture.app,
+            "PATCH",
+            &path,
+            &[],
+            json!({"remove":[draft.files[0].id]})
+        )
+        .await
+        .0,
+        401
+    );
+    let (status, _, body) = request(
+        &fixture.app,
+        "PATCH",
+        &path,
+        &authorization,
+        json!({"add":[{"name":"preview.png","size":8}],"remove":[draft.files[0].id]}),
+    )
+    .await;
+    assert_eq!(status, 200);
+    let edited: Value = serde_json::from_slice(&body).unwrap();
+    let file = edited["files"][0]["id"].as_str().unwrap();
+    let preview = format!("/api/files/{file}/preview");
+    assert_eq!(
+        request(&fixture.app, "GET", &preview, &authorization, json!(null))
+            .await
+            .0,
+        404
+    );
+    fixture
+        .app
+        .upload(&fixture.actor, file, 0, b"\x89PNG\r\n\x1a\n")
+        .unwrap();
+    assert_eq!(
+        request(&fixture.app, "GET", &preview, &[], json!(null))
+            .await
+            .0,
+        401
+    );
+    let (status, headers, body) =
+        request(&fixture.app, "GET", &preview, &authorization, json!(null)).await;
+    assert_eq!(status, 200);
+    assert_eq!(headers["content-type"], "image/png");
+    assert_eq!(headers["cache-control"], "no-store");
+    assert_eq!(headers["x-content-type-options"], "nosniff");
+    assert_eq!(body, b"\x89PNG\r\n\x1a\n");
+    assert_eq!(
+        request(
+            &fixture.app,
+            "PATCH",
+            &path,
+            &authorization,
+            json!({"restore":[draft.files[0].id]})
+        )
+        .await
+        .0,
+        200
+    );
+}
 #[tokio::test]
 async fn http_ranges_head_invalid_ranges_and_retries() {
     let f = Fixture::new();
@@ -453,6 +526,7 @@ async fn embedded_entry_point_modules_and_styles_have_correct_content_types() {
         ("/s/example", "text/html", "id=\"root\""),
         (javascript.as_str(), "text/javascript", "Binbin"),
         (css.as_str(), "text/css", "--background"),
+        ("/assets/favicon.svg", "image/svg+xml", "viewBox"),
     ] {
         let (status, headers, body) = request(&fixture.app, "GET", path, &[], json!(null)).await;
         assert_eq!(status, 200);

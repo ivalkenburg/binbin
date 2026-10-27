@@ -11,6 +11,33 @@ use std::{
     fs::{self, File},
 };
 
+pub(super) fn validate_file_name(name: &str, names: &mut HashSet<String>) -> Result<()> {
+    if name.is_empty()
+        || name.len() > 240
+        || name == "."
+        || name == ".."
+        || name.chars().any(|c| c.is_control() || "/\\:".contains(c))
+        || !names.insert(name.to_lowercase())
+    {
+        return Err(bad(
+            "Filenames must be unique, safe basenames of at most 240 bytes",
+        ));
+    }
+    Ok(())
+}
+
+pub(super) fn storage_reservation(size: u64, count: usize, held: u64) -> Result<u64> {
+    let archive = if count > 1 {
+        size.checked_add(count as u64 * 1024 + 1024)
+            .ok_or_else(|| bad("Share is too large"))?
+    } else {
+        0
+    };
+    size.checked_add(held)
+        .and_then(|total| total.checked_add(archive))
+        .ok_or_else(|| bad("Share is too large"))
+}
+
 impl App {
     pub(crate) fn owns(&self, a: &Identity, s: &Share) -> Result<()> {
         if a.user.admin || a.user.id == s.owner {
@@ -75,17 +102,7 @@ impl App {
             let mut files = Vec::new();
             let id = secret();
             for f in &n.files {
-                if f.name.is_empty()
-                    || f.name.len() > 240
-                    || f.name == "."
-                    || f.name == ".."
-                    || f.name.chars().any(|c| c.is_control() || "/\\:".contains(c))
-                    || !names.insert(f.name.to_lowercase())
-                {
-                    return Err(bad(
-                        "Filenames must be unique, safe basenames of at most 240 bytes",
-                    ));
-                }
+                validate_file_name(&f.name, &mut names)?;
                 if f.size > settings.file_limit {
                     return Err(bad("File exceeds the configured size limit"));
                 }
@@ -104,15 +121,7 @@ impl App {
             if size > settings.share_limit {
                 return Err(bad("Share exceeds the configured size limit"));
             }
-            let archive_reservation = if files.len() > 1 {
-                size.checked_add((files.len() as u64) * 1024 + 1024)
-                    .ok_or_else(|| bad("Share is too large"))?
-            } else {
-                0
-            };
-            let reserved = size
-                .checked_add(archive_reservation)
-                .ok_or_else(|| bad("Share is too large"))?;
+            let reserved = storage_reservation(size, files.len(), 0)?;
             let used: u64 = all::<Share>(db, "share")?.iter().map(|s| s.reserved).sum();
             if used.saturating_add(reserved) > settings.storage_limit {
                 return Err(Error(
@@ -163,6 +172,12 @@ impl App {
         Ok(ShareView {
             share: value,
             files: self.files_in(db, &s.id)?,
+            removed_files: self
+                .removed_files_in(db, &s.id)?
+                .into_iter()
+                .filter(|f| f.removed_at + super::drafts::UNDO_SECONDS > self.now())
+                .collect(),
+            server_time: self.now(),
             url: format!("{}/s/{}", self.public_url, s.id),
         })
     }

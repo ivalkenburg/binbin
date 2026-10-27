@@ -1,3 +1,4 @@
+import { KeyRound, Save, UserCheck, UserPlus, UserX } from "lucide-react";
 import { RefreshError, Panel, Heading, Loading } from "@/components/common";
 import { useState } from "react";
 import { useApp } from "@/app/context";
@@ -73,6 +74,11 @@ export function AdminPage() {
                       })
                     }
                   >
+                    {account.enabled ? (
+                      <UserX aria-hidden="true" />
+                    ) : (
+                      <UserCheck aria-hidden="true" />
+                    )}
                     {account.enabled ? "Disable" : "Enable"}
                   </Button>
                 )}
@@ -82,6 +88,7 @@ export function AdminPage() {
                   disabled={pending}
                   onClick={() => setReset(account)}
                 >
+                  <KeyRound aria-hidden="true" />
                   Reset password
                 </Button>
               </div>
@@ -129,6 +136,7 @@ export function AdminPage() {
                   autoComplete="new-password"
                 />
                 <Button variant="default" type="submit" disabled={pending}>
+                  <KeyRound aria-hidden="true" />
                   Reset password and invalidate sessions
                 </Button>
               </form>
@@ -175,6 +183,7 @@ export function AdminPage() {
             />
             <CheckField label="Administrator access" name="admin" />
             <Button type="submit" variant="default" disabled={pending}>
+              <UserPlus aria-hidden="true" />
               Create account
             </Button>
           </form>
@@ -227,6 +236,7 @@ export function AdminPage() {
               className="full"
               disabled={pending}
             >
+              <Save aria-hidden="true" />
               Save limits
             </Button>
           </form>

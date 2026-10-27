@@ -40,7 +40,7 @@ Release versions use numeric `MAJOR.MINOR.FIX`. Use an exact version or digest f
 
 Follow the commit and release conventions in [AGENTS.md](../AGENTS.md). Use `MAJOR.MINOR.FIX`: increment MAJOR for breaking changes, MINOR for compatible features, or FIX for compatible bug fixes.
 
-Set `workspace.package.version` in `Cargo.toml`, build the frontend with `npm --prefix web ci && npm --prefix web run build`, refresh `Cargo.lock` with `cargo check --workspace`, commit both, and push to the default branch. The current version is `0.1.0`. Then publish the Release, which creates the tag and starts the pipeline. The title is the bare version and the description is bullet points followed by the comparison link:
+Set `workspace.package.version` in `Cargo.toml`, build the frontend with `npm --prefix web ci && npm --prefix web run build`, refresh `Cargo.lock` with `cargo check --workspace`, commit both, and push to the default branch. The current version is `0.2.0`. Then publish the Release, which creates the tag and starts the pipeline. The title is the bare version and the description is bullet points followed by the comparison link:
 
 ```sh
 gh release create v0.1.1 --target main --title 0.1.1 --notes-file notes.md

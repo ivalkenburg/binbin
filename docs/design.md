@@ -264,19 +264,20 @@ Theme preference is `system`, `light`, or `dark`, persisted under `binbin-theme`
 - **Metadata:** dates, sizes, counts, and support text (12px); fine print uses line-height 1.6. Quantities in row metadata and definition lists use tabular numerals.
 - **Mark:** the existing Binbin wordmark uses 21px, weight 650, and −0.035em tracking. Keep its SVG mark; interface icons are Lucide SVGs.
 
-Input text is 16px below the Tailwind medium breakpoint (48rem), then 14px. At application widths up to 480px, inputs and native selects have a 40px minimum height and 16px text; the compact theme selector stays 13px. Do not apply oversized display typography to routine working screens.
+Input text is 16px below the Tailwind medium breakpoint (48rem), then 14px. At application widths up to 480px, inputs and native selects have a 40px minimum height and 16px text; the theme selector uses icon buttons. Do not apply oversized display typography to routine working screens.
 
 ## Layout
 
-The header, main workspace, and footer share one centered maximum width (1120px), with matching horizontal padding: 28px on desktop, 20px below 760px, and 16px below 480px. The header has a 64px minimum height and aligns mark, navigation, and account controls in three shrinking columns. Main desktop padding is 40px 28px 64px.
+The header, main workspace, and footer share one centered maximum width (1120px), with matching horizontal padding: 28px on desktop, 20px below 760px, and 16px below 480px. The header has a 64px minimum height and aligns mark, navigation, and account controls in three shrinking columns. Main desktop padding is 40px 28px 64px. The footer shows Binbin and the workspace package version from Cargo.toml.
 
 Upload, share details, and administration use a flexible working panel plus a settings track (340px), with a 24px gap. A settings-only panel can narrow to 740px. Sign-in centers a card capped at 400px; recipient content uses a centered card capped at 544px inside the shared workspace. These task-specific patterns belong to their corresponding screens rather than every future page.
 
 Spacing follows the frontmatter scale: 12px between related fields/actions, 16px row padding, 20px between fields, 24px panel gaps and working-card padding, and a 28px heading-to-content interval. The primitive card default is 16px padding; its compact size is 12px. Application working, settings, login, and recipient cards use 24px, reducing to 16px on narrow screens.
 
 - **At 1000px and below:** hide the account name and deadline column, reduce paired-layout settings tracks to 310px and gaps to 20px, and stack paired fields within those layouts.
-- **At 760px and below:** navigation becomes a second header row, paired panels stack, and main horizontal padding becomes 20px. Field pairs can return to two columns when the stacked panel has room. Signed-out and recipient shells omit navigation.
-- **At 480px and below:** horizontal padding becomes 16px, paired fields and inline forms stack, and account/user actions wrap or stack. Share rows use two columns, omit their desktop header, and place status beside the filename with size/count metadata below. Controls follow the mobile sizing described above.
+- **At 900px and below:** navigation becomes a second header row.
+- **At 760px and below:** paired panels stack, and main horizontal padding becomes 20px. Field pairs can return to two columns when the stacked panel has room. Signed-out and recipient shells omit navigation.
+- **At 480px and below:** navigation uses a two-column grid and page headings clamp to three lines with their full title retained; horizontal padding becomes 16px, paired fields and inline forms stack, and account/user actions wrap or stack. Share rows use two columns, omit their desktop header, and place status beside the filename with size/count metadata below. Controls follow the mobile sizing described above.
 - **Validation widths:** desktop 1440px, tablet 768px, mobile 390px, and narrow 320px, each in light and dark themes. These are evidence sizes, not additional CSS breakpoints.
 
 The share index uses aligned five-column rows at desktop, four when the deadline is hidden, and two on narrow screens. Rows have a 78px minimum height and a muted hover surface. Long file titles wrap within shrinking tracks and clamp to two lines; transfer feedback truncates its filename to one line with the full name in a title attribute. Other long text and code wrap within their available width.
@@ -324,19 +325,23 @@ Bordered, rounded, full-width fields use the input stroke, transparent light fil
 
 ### Cards / Containers
 
-`Panel` composes Card, an optional CardHeader/title, and CardContent. Use it for genuine task groups and single-card login/recipient flows. Preserve the radius, subtle ring, and spacing rules above. Do not use a card for each file row: the index and file lists use aligned content with dividers. Card footers, when used, have a border and muted-at-50% surface.
+`Panel` composes Card, an optional CardHeader/title, and CardContent. Use it for genuine task groups and single-card login/recipient flows. Preserve the radius, subtle ring, and spacing rules above. Do not use a card for each file row: the index and file lists use aligned content. File rows have dividers only between items, with no trailing divider. Card footers, when used, have a border and muted-at-50% surface.
 
 ### Status badges
 
-Pill-shaped, compact labels (20px height, 12px medium text, 8px horizontal padding). The Status wrapper uses the primary variant only for Available; Draft, Preparing, Expired, Allowance used, Removed, and Abandoned use the secondary variant. Labels carry the meaning alongside color. These are state labels, not invented interactive filters.
+Pill-shaped, compact labels (20px height, 12px medium text, 8px horizontal padding). The Status wrapper uses the primary variant only for Available; Draft, Preparing, Expired, Allowance used, Removed, and Abandoned use the secondary variant. Labels carry the meaning alongside color. On share detail pages, the state sits directly beside the share name and matches its title typography, wrapping below it when necessary on narrow screens. Other list badges retain their compact size. These are state labels, not invented interactive filters.
 
 ### Navigation
+
+Lucide icons accompany navigation and primary/destructive action labels throughout the app. Familiar actions such as copy, remove, preview, sign out, and pause use icon buttons with accessible names and shadcn tooltips. A single icon button cycles System → Light → Dark → System. Its monitor, sun, or moon icon shows the current preference; its accessible name and tooltip state the current theme and the next choice. A favicon reuses the existing Binbin mark.
 
 The horizontal header uses ghost links and a secondary current-page link with `aria-current="page"`. Share detail keeps Shares current. Administration is shown to administrators. The existing header and recipient/signed-out behavior described under Layout apply at all routes. Back navigation is a semantic anchor; theme selection remains available on signed-out and recipient pages.
 
 ### File selection and upload progress
 
-The drop zone contains a real multiple-file input, supports drag/drop, and shows selected filenames and sizes. Progress comes from committed bytes with phase text for draft creation, verification, and transfer. Pause aborts work and explains that choosing the same files resumes it. App-owned upload state guards navigation while the upload is busy. Completing an upload leads to a private draft for review and explicit publication; it does not silently publish.
+The real multiple-file input, drag/drop, and screenshot paste all append to the collection. File rows show a thumbnail or Lucide file-type icon, filename, size, and explicit queue state. Colliding names receive numbered suffixes with feedback. Rows support individual removal and eight-second Undo; Clear all uses a shadcn dialog. Supported raster images open in a shadcn dialog viewer with previous/next controls and arrow-key navigation. Authenticated previews remain available for completed uploads after reload.
+
+The initial upload is explicit. Additions join a running queue; later additions wait for Upload new files. Failures remain attached to their rows while other files continue, with retry and original-file reselection actions. Publication stays disabled until all remaining files are uploaded. Its button sits in Share settings directly above Revoke and delete. A persistent upload indicator links to the draft and offers Pause while navigation remains usable. Local File handles survive route changes; closing or refreshing warns during active work. Only unfinished files need reselection after reload, and resumption verifies committed prefixes. Drafts remain editable until publication freezes the collection for ZIP preparation.
 
 ### Alerts, failures, and download feedback
 

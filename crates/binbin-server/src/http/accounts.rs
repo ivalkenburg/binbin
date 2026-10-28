@@ -14,7 +14,13 @@ pub(super) struct Login {
 }
 pub(super) async fn login(State(app): State<App>, Json(n): Json<Login>) -> Result<Response> {
     let secure = app.secure_cookie;
-    let (raw, a) = work(app, move |app| app.login(&n.username, &n.password)).await?;
+    let (raw, a) = work(app, move |app| {
+        app.login(&n.username, &n.password).inspect_err(|error| {
+            tracing::warn!(event = "login_failed", status = error.0, "Sign-in failed");
+        })
+    })
+    .await?;
+    tracing::info!(event = "login", user_id = %a.user.id, "User signed in");
     let cookie = format!(
         "binbin_session={raw}; Path=/; HttpOnly; SameSite=Strict; Max-Age={}{}",
         7 * DAY,
@@ -28,7 +34,9 @@ pub(super) async fn login(State(app): State<App>, Json(n): Json<Login>) -> Resul
 pub(super) async fn logout(State(app): State<App>, h: HeaderMap) -> Result<Response> {
     work(app, move |app| {
         let a = identity(&app, &h, true)?;
-        app.logout(&a)
+        app.logout(&a)?;
+        tracing::info!(event = "logout", user_id = %a.user.id, "User signed out");
+        Ok(())
     })
     .await?;
     let mut r = Json(json!({"ok":true})).into_response();

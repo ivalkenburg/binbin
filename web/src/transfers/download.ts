@@ -4,7 +4,12 @@ interface SavedTransfer {
   token?: string;
   expires?: number;
 }
-const pending = new Map<string, Promise<string>>();
+interface PendingTransfer {
+  signal: AbortSignal;
+  promise: Promise<string>;
+}
+const pendingPreparations = new Map<string, PendingTransfer>();
+const pendingDownloads = new Map<string, PendingTransfer>();
 const memory = new Map<string, SavedTransfer>();
 function read(key: string): SavedTransfer | null {
   if (memory.has(key)) return memory.get(key)!;
@@ -32,12 +37,58 @@ export interface DownloadRequest {
   signal: AbortSignal;
 }
 export function download(request: DownloadRequest) {
+  return coalesce(pendingDownloads, request, async () => {
+    const href = await prepareDownload(request);
+    triggerDownload(href, request.signal);
+    return href;
+  });
+}
+
+export async function openFile(request: DownloadRequest) {
+  // Reserve the tab during the click so asynchronous issuance is not blocked
+  // as an unsolicited popup. Do not charge a transfer if the tab is blocked.
+  const tab = window.open("about:blank", "_blank");
+  if (!tab)
+    throw new Error("Allow a new tab to open this file, then try again.");
+  tab.opener = null;
+  try {
+    const href = await prepareDownload(request);
+    request.signal.throwIfAborted();
+    tab.location.replace(`${href}?inline=true`);
+    return href;
+  } catch (error) {
+    tab.close();
+    throw error;
+  }
+}
+
+function prepareDownload(request: DownloadRequest) {
+  return coalesce(pendingPreparations, request, (key) => start(request, key));
+}
+
+function coalesce(
+  operations: Map<string, PendingTransfer>,
+  request: DownloadRequest,
+  run: (key: string) => Promise<string>,
+): Promise<string> {
+  if (request.signal.aborted) return Promise.reject(request.signal.reason);
   const key = `binbin:${request.shareId}:${request.resource}:${request.scope}`;
-  const existing = pending.get(key);
-  if (existing) return existing;
-  const operation = start(request, key).finally(() => pending.delete(key));
-  pending.set(key, operation);
-  return operation;
+  const existing = operations.get(key);
+  if (existing)
+    return existing.promise
+      .then((href) => {
+        request.signal.throwIfAborted();
+        return href;
+      })
+      .catch((error) => {
+        // A cancelled initiator must not cancel another control's live request.
+        if (existing.signal.aborted && !request.signal.aborted)
+          return coalesce(operations, request, run);
+        throw error;
+      });
+  const promise = run(key).finally(() => operations.delete(key));
+  operations.set(key, { signal: request.signal, promise });
+  return promise;
 }
 async function start(
   { shareId, resource, management, password, signal }: DownloadRequest,
@@ -93,7 +144,6 @@ async function start(
         "This download is no longer available. Reopen the share and try again.",
       );
   }
-  triggerDownload(href, signal);
   return href;
 }
 

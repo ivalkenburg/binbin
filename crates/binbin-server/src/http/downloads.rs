@@ -1,4 +1,4 @@
-use super::{Result, filename::safe_download_name, work};
+use super::{Result, extractors::Query, filename::safe_download_name, work};
 use axum::{
     body::Body,
     extract::{Path, State},
@@ -6,6 +6,7 @@ use axum::{
     response::Response,
 };
 use binbin_core::App;
+use serde::Deserialize;
 use std::io::SeekFrom;
 use tokio::io::{AsyncReadExt, AsyncSeekExt};
 use tokio_util::io::ReaderStream;
@@ -50,9 +51,44 @@ fn none_match(headers: &HeaderMap, etag: &str) -> bool {
             })
         })
 }
+#[derive(Deserialize)]
+pub(super) struct DownloadOptions {
+    #[serde(default)]
+    inline: bool,
+}
+
+// Serve only inert formats with a browser MIME type. Active documents such as
+// HTML and SVG are shown as source; unknown formats fall back to downloading.
+fn inline_content_type(name: &str) -> &'static str {
+    let extension = name
+        .rsplit_once('.')
+        .map_or("", |(_, extension)| extension)
+        .to_ascii_lowercase();
+    match extension.as_str() {
+        "png" => "image/png",
+        "jpg" | "jpeg" => "image/jpeg",
+        "gif" => "image/gif",
+        "webp" => "image/webp",
+        "avif" => "image/avif",
+        "bmp" => "image/bmp",
+        "ico" => "image/vnd.microsoft.icon",
+        "pdf" => "application/pdf",
+        "mp4" | "m4v" => "video/mp4",
+        "webm" => "video/webm",
+        "mp3" => "audio/mpeg",
+        "m4a" => "audio/mp4",
+        "ogg" => "audio/ogg",
+        "wav" => "audio/wav",
+        "txt" | "md" | "csv" | "json" | "xml" | "html" | "htm" | "svg" | "js" | "css" | "rs"
+        | "py" | "log" => "text/plain; charset=utf-8",
+        _ => "application/octet-stream",
+    }
+}
+
 pub(super) async fn download(
     State(app): State<App>,
     Path(token): Path<String>,
+    Query(options): Query<DownloadOptions>,
     method: Method,
     h: HeaderMap,
 ) -> Result<Response> {
@@ -60,20 +96,37 @@ pub(super) async fn download(
     let (path, size, name, hash) =
         work(app.clone(), move |app| app.download(&check, false)).await?;
     let etag = format!("\"{hash}\"");
+    let disposition = if options.inline {
+        "inline"
+    } else {
+        "attachment"
+    };
+    let content_type = if options.inline {
+        inline_content_type(&name)
+    } else {
+        "application/octet-stream"
+    };
     let mut builder = Response::builder()
         .header(header::ETAG, &etag)
         .header(header::ACCEPT_RANGES, "bytes")
-        .header(header::CONTENT_TYPE, "application/octet-stream")
+        .header(header::CONTENT_TYPE, content_type)
         .header(
             header::CONTENT_DISPOSITION,
             format!(
-                "attachment; filename=\"{}\"; filename*=UTF-8''{}",
+                "{disposition}; filename=\"{}\"; filename*=UTF-8''{}",
                 safe_download_name(&name).replace('"', "_"),
                 url::form_urlencoded::byte_serialize(name.as_bytes())
                     .collect::<String>()
                     .replace('+', "%20")
             ),
         );
+    if options.inline && content_type.starts_with("text/plain") {
+        // Active document formats are served as text with an opaque origin.
+        builder = builder.header(
+            header::CONTENT_SECURITY_POLICY,
+            "sandbox; default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'",
+        );
+    }
     if none_match(&h, &etag) {
         return Ok(builder.status(304).body(Body::empty()).unwrap());
     }
@@ -107,6 +160,7 @@ pub(super) async fn download(
     let mut file = tokio::fs::File::open(path).await?;
     file.seek(SeekFrom::Start(start)).await?;
     work(app, move |app| app.download(&token, true)).await?;
+    tracing::info!(event = "download_started", filename = ?name, size, offset = start, bytes = length, inline = options.inline, "File transfer started");
     Ok(builder
         .body(Body::from_stream(ReaderStream::new(file.take(length))))
         .unwrap())

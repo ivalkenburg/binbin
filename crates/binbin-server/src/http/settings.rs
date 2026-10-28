@@ -18,7 +18,9 @@ pub(super) async fn update_settings(
 ) -> Result<Json<Settings>> {
     work(app, move |app| {
         let actor = identity(&app, &headers, true)?;
-        Ok(Json(app.update_settings(&actor, settings)?))
+        let settings = app.update_settings(&actor, settings)?;
+        tracing::info!(event = "settings_updated", user_id = %actor.user.id, "Instance settings updated");
+        Ok(Json(settings))
     })
     .await
 }

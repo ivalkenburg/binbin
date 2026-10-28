@@ -351,7 +351,9 @@ If saved public transfer credentials still validate, replace Share unavailable w
 
 Notifications are dismissible fixed alerts at bottom right, bounded to 360px and the viewport, with reserved space for the dismiss control. They do not move the page layout. Errors use alert semantics; ordinary confirmation uses status semantics. Opening the share-deletion confirmation clears a previous notification before showing its warning.
 
-Recipient downloads keep one inline, dismissible status Alert per resource, with its filename and Retry this download anchor. The text says Download started, never Download complete; retry reuses the transfer identity and allowance. Repeating a download updates that resource’s feedback. Preserve bounded text and the distinct actionable retry link.
+Published, downloadable filenames open the file in a new browser tab; the separate Download button saves an attachment. Both actions reuse the same transfer identity and allowance. Filenames use a subtle underline, visible focus, and an accessible name explaining the new tab. Preparing a transfer is a button action; recovered transfer URLs remain real links. Draft and unavailable files retain their existing noninteractive names.
+
+Recipient downloads use a compact retry list below the file actions, with one shared Download started message and one dismissible row per resource. Each row contains a bounded filename, a Retry link with the accessible name Retry this download, and the standard dismiss icon button. Use spacing and row separators rather than nested alert cards or repeated explanations. Repeating a download updates that resource’s feedback; retry reuses the transfer identity and allowance. Never claim Download complete.
 
 ### Editing, deletion, and secrets
 

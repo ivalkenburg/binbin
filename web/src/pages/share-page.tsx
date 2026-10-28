@@ -36,7 +36,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckField, Field } from "@/components/forms";
 import { FilePicker } from "@/components/file-picker";
-import { DownloadButton } from "@/components/download-controls";
+import { DownloadButton, FileOpenButton } from "@/components/download-controls";
 import { IconButton } from "@/components/icon-button";
 import { FileTypeIcon } from "@/components/file-preview";
 import { collectionErrors } from "@/transfers/upload-manager";
@@ -82,7 +82,17 @@ export function SharePage({ id }: { id: string }) {
                 <div className="detail-file" key={file.id}>
                   <FileTypeIcon name={file.name} />
                   <div>
-                    <strong title={file.name}>{file.name}</strong>
+                    {downloadable ? (
+                      <FileOpenButton
+                        share={share}
+                        resource={file.id}
+                        management
+                      >
+                        {file.name}
+                      </FileOpenButton>
+                    ) : (
+                      <strong title={file.name}>{file.name}</strong>
+                    )}
                     <small>{bytes(file.size)}</small>
                   </div>
                   {downloadable && (

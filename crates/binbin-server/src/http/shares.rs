@@ -22,7 +22,9 @@ pub(super) async fn edit_files(
 ) -> Result<Json<ShareView>> {
     work(app, move |app| {
         let actor = identity(&app, &h, true)?;
-        Ok(Json(app.edit_files(&actor, &id, edit)?))
+        let share = app.edit_files(&actor, &id, edit)?;
+        tracing::info!(event = "share_files_updated", user_id = %actor.user.id, share_id = %id, "Draft files updated");
+        Ok(Json(share))
     })
     .await
 }
@@ -60,7 +62,9 @@ pub(super) async fn create_share(
 ) -> Result<Json<ShareView>> {
     work(app, move |app| {
         let a = identity(&app, &h, true)?;
-        Ok(Json(app.create_share(&a, n)?))
+        let share = app.create_share(&a, n)?;
+        tracing::info!(event = "share_created", user_id = %a.user.id, share_id = %share.share["id"], files = share.files.len(), "Share created");
+        Ok(Json(share))
     })
     .await
 }
@@ -94,7 +98,11 @@ pub(super) async fn upload(
         {
             app.verify_upload_prefix(&a, &id, prefix)?;
         }
-        Ok(Json(app.upload(&a, &id, q.offset, &body)?))
+        let file = app.upload(&a, &id, q.offset, &body)?;
+        if file.offset == file.size && q.offset < file.size {
+            tracing::info!(event = "upload_completed", user_id = %a.user.id, share_id = %file.share, file_id = %id, size = file.size, "File uploaded");
+        }
+        Ok(Json(file))
     })
     .await
 }
@@ -116,7 +124,9 @@ pub(super) async fn publish(
 ) -> Result<Json<ShareView>> {
     work(app, move |app| {
         let a = identity(&app, &h, true)?;
-        Ok(Json(app.publish(&a, &id)?))
+        let share = app.publish(&a, &id)?;
+        tracing::info!(event = "share_published", user_id = %a.user.id, share_id = %id, "Share published");
+        Ok(Json(share))
     })
     .await
 }
@@ -128,7 +138,9 @@ pub(super) async fn edit(
 ) -> Result<Json<ShareView>> {
     work(app, move |app| {
         let a = identity(&app, &h, true)?;
-        Ok(Json(app.edit(&a, &id, n)?))
+        let share = app.edit(&a, &id, n)?;
+        tracing::info!(event = "share_updated", user_id = %a.user.id, share_id = %id, "Share settings updated");
+        Ok(Json(share))
     })
     .await
 }
@@ -140,6 +152,7 @@ pub(super) async fn revoke(
     work(app, move |app| {
         let a = identity(&app, &h, true)?;
         app.revoke(&a, &id)?;
+        tracing::info!(event = "share_revoked", user_id = %a.user.id, share_id = %id, "Share revoked and deleted");
         Ok(Json(json!({"ok":true})))
     })
     .await
@@ -189,6 +202,7 @@ pub(super) async fn transfer_response(
     work(app, move |app| {
         let (raw, t) =
             app.new_transfer(&id, &n.resource, n.password.as_deref(), &n.key, a.as_ref())?;
+        tracing::info!(event = "transfer_ready", share_id = %id, resource = %n.resource, management = t.management, "Download transfer ready");
         Ok(Json(
             json!({"token":raw,"url":format!("{}/d/{raw}",app.public_url),"expires":t.expires}),
         ))

@@ -29,12 +29,14 @@ pub(super) async fn create_user(
 ) -> Result<Json<Value>> {
     work(app, move |app| {
         let a = identity(&app, &h, true)?;
-        Ok(Json(user_view(&app.create_user(
+        let user = app.create_user(
             &a,
             &n.username,
             &n.password,
             n.admin,
-        )?)))
+        )?;
+        tracing::info!(event = "user_created", user_id = %a.user.id, target_user_id = %user.id, admin = user.admin, "Account created");
+        Ok(Json(user_view(&user)))
     })
     .await
 }
@@ -52,6 +54,7 @@ pub(super) async fn update_user(
     work(app, move |app| {
         let a = identity(&app, &h, true)?;
         app.change_user(&a, &id, n.password.as_deref(), n.enabled)?;
+        tracing::info!(event = "user_updated", user_id = %a.user.id, target_user_id = %id, enabled = n.enabled, password_changed = n.password.is_some(), "Account updated");
         Ok(Json(json!({"ok":true})))
     })
     .await

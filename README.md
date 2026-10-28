@@ -88,6 +88,8 @@ The browser tests start an isolated fixture on port 8086, with temporary data an
 
 Configure `BINBIN_DATA` (default `data`), `BINBIN_BIND` (default `0.0.0.0:8080`), `BINBIN_PUBLIC_URL` (default `http://localhost:8080`), and `RUST_LOG`. `/healthz` is the health endpoint. [HTTP API documentation](docs/api.md) describes the client protocol.
 
+The server writes timestamped event logs to stdout. Events include sign-in successes and failures, sign-out, account and API token changes, share creation/publication/updates/deletion, completed file uploads, download transfer preparation and starts, and instance settings changes. Logs include operation IDs and transfer sizes where applicable; passwords, session cookies, API token secrets, and download capability URLs are excluded. Set `RUST_LOG` to control verbosity (default `binbin=info`).
+
 ## Back up and restore
 
 The reliable full backup procedure is to **stop the server**, copy the entire persistent data directory or Docker volume (including SQLite, WAL files if present, and share directories), then restart. Use your volume backup tool while the service is stopped. Store backups outside the live volume. A database-only backup cannot restore uploaded contents.
@@ -102,4 +104,4 @@ tar -czf ../binbin-backup.tgz data
 
 Restore into an empty data directory while the server is stopped, preserve file ownership (10001:10001 in Docker), and start the same application version. Backups contain files and authentication records; keep them private. `binbin-server backup-db DESTINATION` creates a consistent database-only snapshot for inspection. It does not replace the full backup procedure.
 
-The initial release intentionally excludes public registration, previews, S3, OIDC, malware scanning, per-user quotas, notifications, and a recovery bin.
+The initial release intentionally excludes public registration, uncharged recipient previews, S3, OIDC, malware scanning, per-user quotas, notifications, and a recovery bin.

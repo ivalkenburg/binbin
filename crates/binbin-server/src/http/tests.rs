@@ -127,6 +127,100 @@ async fn request(
 }
 
 #[tokio::test]
+async fn inline_files_preserve_download_headers_ranges_and_allowance() {
+    let fixture = Fixture::new();
+    for (name, content_type) in [
+        ("hello.txt", "text/plain; charset=utf-8"),
+        ("image.PNG", "image/png"),
+        ("document.pdf", "application/pdf"),
+        ("untrusted.html", "text/plain; charset=utf-8"),
+        ("untrusted.svg", "text/plain; charset=utf-8"),
+        ("archive.zip", "application/octet-stream"),
+        ("pdf", "application/octet-stream"),
+    ] {
+        let draft = fixture
+            .app
+            .create_share(
+                &fixture.actor,
+                NewShare {
+                    title: "Browser file".into(),
+                    files: vec![NewFile {
+                        name: name.into(),
+                        size: 5,
+                    }],
+                    days: Some(7),
+                    limit: Some(1),
+                    password: None,
+                },
+            )
+            .unwrap();
+        let id = draft.share["id"].as_str().unwrap();
+        fixture
+            .app
+            .upload(&fixture.actor, &draft.files[0].id, 0, b"hello")
+            .unwrap();
+        let share = fixture.app.publish(&fixture.actor, id).unwrap();
+        let token = fixture.transfer(&share, &draft.files[0].id);
+        let inline = format!("/d/{token}?inline=true");
+        let attachment = format!("/d/{token}");
+        let (status, headers, body) =
+            request(&fixture.app, "HEAD", &inline, &[], json!(null)).await;
+        assert_eq!(status, 200);
+        assert!(body.is_empty());
+        assert_eq!(headers["content-type"], content_type);
+        assert!(
+            headers["content-disposition"]
+                .to_str()
+                .unwrap()
+                .starts_with("inline;")
+        );
+        let policy = headers["content-security-policy"].to_str().unwrap();
+        assert_eq!(
+            policy.starts_with("sandbox;"),
+            content_type.starts_with("text/plain")
+        );
+        assert_eq!(headers["x-content-type-options"], "nosniff");
+        assert_eq!(headers["cache-control"], "no-store");
+        assert_eq!(
+            fixture.app.inspect(&fixture.actor, id).unwrap().share["used"],
+            0
+        );
+        let (status, _, body) = request(
+            &fixture.app,
+            "GET",
+            &inline,
+            &[("range", "bytes=1-3")],
+            json!(null),
+        )
+        .await;
+        assert_eq!(status, 206);
+        assert_eq!(body, b"ell");
+        let (status, headers, body) =
+            request(&fixture.app, "GET", &attachment, &[], json!(null)).await;
+        assert_eq!(status, 200);
+        assert_eq!(headers["content-type"], "application/octet-stream");
+        assert!(
+            headers["content-disposition"]
+                .to_str()
+                .unwrap()
+                .starts_with("attachment;")
+        );
+        assert_eq!(body, b"hello");
+        assert_eq!(
+            fixture.app.inspect(&fixture.actor, id).unwrap().share["used"],
+            1
+        );
+        fixture.app.revoke(&fixture.actor, id).unwrap();
+        assert_eq!(
+            request(&fixture.app, "GET", &inline, &[], json!(null))
+                .await
+                .0,
+            404
+        );
+    }
+}
+
+#[tokio::test]
 async fn editable_draft_and_private_preview_http_contracts() {
     let fixture = Fixture::new();
     let draft = fixture.draft(None, false);

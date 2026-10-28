@@ -25,6 +25,7 @@ pub(super) async fn create_token(
     work(app, move |app| {
         let a = identity(&app, &h, true)?;
         let (raw, a) = app.create_token(&a, &n.name)?;
+        tracing::info!(event = "api_token_created", user_id = %a.user.id, "API token created");
         Ok(Json(
             json!({"token":raw,"id":a.credential.id,"expires":a.credential.expires}),
         ))
@@ -39,6 +40,7 @@ pub(super) async fn delete_token(
     work(app, move |app| {
         let a = identity(&app, &h, true)?;
         app.revoke_token(&a, &id)?;
+        tracing::info!(event = "api_token_revoked", user_id = %a.user.id, "API token revoked");
         Ok(Json(json!({"ok":true})))
     })
     .await

@@ -18,6 +18,7 @@ import { Field } from "@/components/forms";
 import {
   DownloadButton,
   DownloadFeedback,
+  FileOpenButton,
 } from "@/components/download-controls";
 import { Button } from "@/components/ui/button";
 import type { PublicShare } from "@/types/api";
@@ -129,7 +130,16 @@ export function PublicPage() {
             <div className="detail-file" key={item.resource}>
               <FileTypeIcon name={item.label} />
               <div>
-                <strong title={item.label}>{item.label}</strong>
+                <a
+                  className="file-open-link"
+                  href={`/d/${encodeURIComponent(item.token)}?inline=true`}
+                  target="_blank"
+                  rel="noopener"
+                  aria-label={`Open ${item.label} in browser (new tab)`}
+                  title={`${item.label} · Open in browser`}
+                >
+                  <strong>{item.label}</strong>
+                </a>
                 <small>Previously started transfer</small>
               </div>
               <LinkButton
@@ -207,7 +217,14 @@ export function PublicPage() {
         <div className="detail-file" key={file.id}>
           <FileTypeIcon name={file.name} />
           <div>
-            <strong title={file.name}>{file.name}</strong>
+            <FileOpenButton
+              share={share}
+              resource={file.id}
+              password={password}
+              onStarted={started}
+            >
+              {file.name}
+            </FileOpenButton>
             <small>{bytes(file.size)}</small>
           </div>
           <DownloadButton
@@ -256,8 +273,8 @@ export function PublicPage() {
         }
       />
       <p className="fine muted">
-        Each file or ZIP uses one download. Opening this page doesn’t count.
-        Keep your retry link if a transfer is interrupted.
+        Opening or downloading each file or ZIP uses one download. Retries don’t
+        use another download. Opening this page doesn’t count.
       </p>
     </Panel>
   );

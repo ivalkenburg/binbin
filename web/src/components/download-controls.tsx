@@ -2,11 +2,55 @@ import type { ReactNode } from "react";
 import { Download, RotateCcw, X } from "lucide-react";
 import { IconButton } from "./icon-button";
 import { Button } from "./ui/button";
-import { Alert, AlertTitle, AlertDescription, AlertAction } from "./ui/alert";
 import { useApp } from "@/app/context";
 import { useTask } from "@/hooks/use-task";
-import { download } from "@/transfers/download";
+import { download, openFile } from "@/transfers/download";
 import type { PublicShare, Share } from "@/types/api";
+
+export function FileOpenButton({
+  share,
+  resource,
+  management = false,
+  password,
+  onStarted,
+  children,
+}: {
+  share: Share | PublicShare;
+  resource: string;
+  management?: boolean;
+  password?: string | null;
+  onStarted?: (resource: string, href: string) => void;
+  children: string;
+}) {
+  const { csrf } = useApp();
+  const { pending, run } = useTask();
+  return (
+    <Button
+      type="button"
+      variant="link"
+      className="file-open-link h-auto w-full min-w-0 whitespace-normal p-0 text-left text-[13px]"
+      title={`${children} · Open in browser`}
+      aria-label={`Open ${children} in browser (new tab)`}
+      aria-busy={pending}
+      disabled={pending}
+      onClick={() => {
+        void run(async (signal) => {
+          const href = await openFile({
+            shareId: share.id,
+            resource,
+            management,
+            scope: management ? csrf : "public",
+            password,
+            signal,
+          });
+          onStarted?.(resource, href);
+        });
+      }}
+    >
+      <strong>{children}</strong>
+    </Button>
+  );
+}
 
 export function DownloadButton({
   share,
@@ -74,49 +118,48 @@ export function DownloadFeedback({
 }) {
   return (
     <div id="retry-links" aria-live="polite">
+      {Object.keys(links).length > 0 && (
+        <p className="fine muted retry-guidance">
+          Download started. Retry an interrupted transfer below.
+        </p>
+      )}
       {Object.entries(links).map(([resource, href]) => {
         const name =
           resource === "zip"
             ? "All files (ZIP)"
             : share.files.find((f) => f.id === resource)?.name;
         return (
-          <Alert
+          <div
             className="transfer-feedback"
             data-resource={resource}
             role="status"
             key={resource}
           >
-            <div className="min-w-0">
-              <AlertTitle>Download started</AlertTitle>
-              <span className="feedback-file" title={name}>
-                {name}
-              </span>
-              <AlertDescription className="my-2 text-xs">
-                Connection interrupted? Resume with the same link.
-              </AlertDescription>
-              <a
-                href={href}
-                data-action="public-download"
-                data-resource={resource}
-                onClick={(e) => {
-                  e.preventDefault();
-                  retry(resource);
-                }}
-              >
-                <RotateCcw aria-hidden="true" className="inline-icon" />
-                Retry this download
-              </a>
-            </div>
-            <AlertAction>
-              <IconButton
-                size="icon-xs"
-                label="Dismiss download message"
-                onClick={() => dismiss(resource)}
-              >
-                <X aria-hidden="true" />
-              </IconButton>
-            </AlertAction>
-          </Alert>
+            <span className="feedback-file" title={name}>
+              {name}
+            </span>
+            <a
+              href={href}
+              data-action="public-download"
+              data-resource={resource}
+              onClick={(e) => {
+                e.preventDefault();
+                retry(resource);
+              }}
+              aria-label="Retry this download"
+              title={`Retry ${name}`}
+            >
+              <RotateCcw aria-hidden="true" className="inline-icon" />
+              Retry
+            </a>
+            <IconButton
+              size="icon-xs"
+              label="Dismiss download message"
+              onClick={() => dismiss(resource)}
+            >
+              <X aria-hidden="true" />
+            </IconButton>
+          </div>
         );
       })}
     </div>

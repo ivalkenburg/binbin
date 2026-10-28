@@ -257,7 +257,7 @@ form > .field-pair,
   font-size: 13px;
   overflow-wrap: anywhere;
 }
-.detail-file button {
+.detail-file > button {
   flex-shrink: 0;
 }
 .draft-controls {
@@ -447,24 +447,48 @@ dd {
 #retry-links:empty {
   display: none;
 }
+#retry-links:not(:empty) {
+  margin-top: 20px;
+}
+.retry-guidance {
+  margin: 0 0 8px;
+}
 .transfer-feedback {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   min-width: 0;
   max-width: 100%;
-  margin-top: 16px;
+  padding: 8px 0;
 }
-.transfer-feedback p,
+.transfer-feedback + .transfer-feedback {
+  border-top: 1px solid var(--border);
+}
 .transfer-feedback a {
+  flex-shrink: 0;
   font-size: 12px;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
 }
 .feedback-file {
   display: block;
-  margin-top: 3px;
+  min-width: 0;
+  flex: 1;
   color: var(--muted-foreground);
   font-size: 12px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.file-open-link {
+  display: block;
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--border);
+  text-underline-offset: 3px;
+}
+.file-open-link:hover {
+  color: var(--primary);
+  text-decoration-color: currentColor;
 }
 .file-title strong,
 .detail-file strong {

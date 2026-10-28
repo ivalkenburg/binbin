@@ -182,7 +182,7 @@
   .detail-file > svg {
     width: 20px;
   }
-  .detail-file button {
+  .detail-file > button {
     font-size: 12px;
     padding-inline: 8px;
   }

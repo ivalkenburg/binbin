@@ -88,6 +88,7 @@
   background: color-mix(in oklch, var(--muted) 60%, transparent);
 }
 .share-link {
+  display: block;
   color: inherit;
   text-decoration: none;
 }
@@ -471,7 +472,6 @@ dd {
   color: var(--primary);
   text-decoration-color: currentColor;
 }
-.file-title strong,
 .panel-heading {
   display: flex;
   align-items: center;
@@ -645,6 +645,7 @@ dd {
 .detail-file > button {
   flex-shrink: 0;
 }
+.file-title strong,
 .detail-file strong {
   display: -webkit-box;
   -webkit-line-clamp: 2;

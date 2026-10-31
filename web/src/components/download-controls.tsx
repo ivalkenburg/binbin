@@ -60,6 +60,8 @@ export function DownloadButton({
   onStarted,
   children,
   primary = false,
+  iconOnly = false,
+  title,
   className,
 }: {
   share: Share | PublicShare;
@@ -69,6 +71,8 @@ export function DownloadButton({
   onStarted?: (resource: string, href: string) => void;
   children?: ReactNode;
   primary?: boolean;
+  iconOnly?: boolean;
+  title?: string;
   className?: string;
 }) {
   const { csrf, notify } = useApp();
@@ -76,8 +80,11 @@ export function DownloadButton({
   return (
     <Button
       type="button"
-      variant={primary ? "default" : "outline"}
+      variant={iconOnly ? "ghost" : primary ? "default" : "outline"}
+      size={iconOnly ? "icon-sm" : "default"}
       className={className}
+      title={title}
+      aria-label={iconOnly ? "Download" : undefined}
       aria-busy={pending}
       data-action={management ? "download" : "public-download"}
       data-resource={resource}
@@ -101,7 +108,7 @@ export function DownloadButton({
       }
     >
       <Download aria-hidden="true" />
-      {children || "Download"}
+      {iconOnly ? null : children || "Download"}
     </Button>
   );
 }

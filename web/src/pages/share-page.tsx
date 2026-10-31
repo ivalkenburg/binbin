@@ -54,8 +54,7 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { FilePicker } from "@/components/file-picker";
-import { DownloadButton, FileOpenButton } from "@/components/download-controls";
-import { FileTypeIcon } from "@/components/file-preview";
+import { FileList } from "@/components/file-list";
 import { collectionErrors } from "@/transfers/upload-manager";
 import type { Limits, Share } from "@/types/api";
 export function SharePage({ id }: { id: string }) {
@@ -103,53 +102,20 @@ export function SharePage({ id }: { id: string }) {
             <DraftFiles share={share} />
           ) : (
             <>
-              {share.files.map((file) => (
-                <div className="detail-file" key={file.id}>
-                  <FileTypeIcon name={file.name} />
-                  <div>
-                    {downloadable ? (
-                      <FileOpenButton
-                        share={share}
-                        resource={file.id}
-                        management
-                      >
-                        {file.name}
-                      </FileOpenButton>
-                    ) : (
-                      <strong title={file.name}>{file.name}</strong>
-                    )}
-                    <small>{bytes(file.size)}</small>
-                  </div>
-                  {downloadable && (
-                    <DownloadButton
-                      share={share}
-                      resource={file.id}
-                      management
-                    />
-                  )}
-                </div>
-              ))}
-              {!share.files.length && (
-                <p className="muted">File contents have been removed.</p>
-              )}
-              {share.zip_hash && downloadable && (
-                <DownloadButton
+              {share.files.length ? (
+                <FileList
                   share={share}
-                  resource="zip"
                   management
-                  className="full"
-                >
-                  Download all as ZIP · {bytes(share.zip_size)}
-                </DownloadButton>
+                  downloadable={downloadable}
+                />
+              ) : (
+                <p className="muted">File contents have been removed.</p>
               )}
             </>
           )}
         </Panel>
         <ShareSettings share={share} reload={reload} />
       </div>
-      {share.state === "draft" && (
-        <PublishShare share={share} reload={reload} />
-      )}
     </>
   );
 }
@@ -223,38 +189,33 @@ function PublishShare({ share, reload }: { share: Share; reload: () => void }) {
   const { uploads, notify } = useApp();
   const value = uploads.get(share.id);
   const items = value?.items.filter((item) => !item.removedAt) ?? [];
-  const uploaded = items.filter((item) => item.state === "uploaded").length;
   const ready =
     !!value &&
     !!items.length &&
-    uploaded === items.length &&
+    items.every((item) => item.state === "uploaded") &&
     !value.running &&
     !value.pending &&
     !value.publishing;
   const expired = share.created + DRAFT_LIFETIME <= Date.now() / 1000;
   return (
-    <div className="publish-bar">
-      <span className="publish-summary" role="status">
-        {uploaded} of {fileCount(items.length)} uploaded
-      </span>
-      <Button
-        type="button"
-        data-action="publish"
-        disabled={!ready || expired}
-        onClick={() =>
-          void uploads
-            .publish(share.id)
-            .then(() => {
-              reload();
-              notify("Your share is ready. Copy the link to send it.");
-            })
-            .catch(() => {})
-        }
-      >
-        <Share2 aria-hidden="true" />
-        {value?.publishing ? "Preparing ZIP and publishing…" : "Publish share"}
-      </Button>
-    </div>
+    <Button
+      type="button"
+      className="full"
+      data-action="publish"
+      disabled={!ready || expired}
+      onClick={() =>
+        void uploads
+          .publish(share.id)
+          .then(() => {
+            reload();
+            notify("Your share is ready. Copy the link to send it.");
+          })
+          .catch(() => {})
+      }
+    >
+      <Share2 aria-hidden="true" />
+      {value?.publishing ? "Preparing ZIP and publishing…" : "Publish share"}
+    </Button>
   );
 }
 function ShareSettings({
@@ -445,6 +406,7 @@ function ShareSettings({
       {!editing &&
         (["active", "draft", "exhausted"].includes(s.state) ? (
           <div className="share-actions">
+            {s.state === "draft" && <PublishShare share={s} reload={reload} />}
             <Button
               className="full"
               variant="destructive"

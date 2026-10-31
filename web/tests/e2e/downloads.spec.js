@@ -214,3 +214,24 @@ test("concurrent Download and Retry actions save one attachment", async ({
   expect(heads).toBe(1);
   expect(saves).toBe(1);
 });
+
+test("clicking anywhere on a file row opens it, and the icon button saves it", async ({
+  page,
+}) => {
+  await login(page);
+  const share = await seed(page);
+  await page.goto(`/#share/${share.id}`);
+  const row = page.locator(".file-row").first();
+  const opened = page.waitForEvent("popup");
+  await row.locator(".file-size").click();
+  const file = await opened;
+  try {
+    await file.waitForURL(/\?inline=true$/);
+    await expect(file.locator("body")).toHaveText("hello");
+  } finally {
+    await file.close();
+  }
+  const saving = page.waitForEvent("download");
+  await row.getByRole("button", { name: "Download", exact: true }).click();
+  await saving;
+});

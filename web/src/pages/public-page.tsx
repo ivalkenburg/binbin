@@ -15,11 +15,8 @@ import {
   type RecoveredDownload,
 } from "@/transfers/download";
 import { Field } from "@/components/forms";
-import {
-  DownloadButton,
-  DownloadFeedback,
-  FileOpenButton,
-} from "@/components/download-controls";
+import { DownloadFeedback } from "@/components/download-controls";
+import { FileList } from "@/components/file-list";
 import { Button } from "@/components/ui/button";
 import type { PublicShare } from "@/types/api";
 export function PublicPage() {
@@ -213,43 +210,7 @@ export function PublicPage() {
             : `${share.remaining} downloads remaining`}
         </span>
       </div>
-      {share.zip_hash && (
-        <DownloadButton
-          share={share}
-          resource="zip"
-          password={password}
-          primary
-          className="full zip-download"
-          onStarted={started}
-        >
-          Download all as ZIP · {bytes(share.zip_size)}
-        </DownloadButton>
-      )}
-      <div className="file-list">
-        {share.files.map((file) => (
-          <div className="detail-file" key={file.id}>
-            <FileTypeIcon name={file.name} />
-            <div>
-              <FileOpenButton
-                share={share}
-                resource={file.id}
-                password={password}
-                onStarted={started}
-              >
-                {file.name}
-              </FileOpenButton>
-              <small>{bytes(file.size)}</small>
-            </div>
-            <DownloadButton
-              share={share}
-              resource={file.id}
-              password={password}
-              primary={share.files.length === 1}
-              onStarted={started}
-            />
-          </div>
-        ))}
-      </div>
+      <FileList share={share} password={password} onStarted={started} />
       <DownloadFeedback
         share={share}
         links={links}

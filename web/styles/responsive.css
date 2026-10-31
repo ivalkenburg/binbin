@@ -141,11 +141,6 @@
   .row-actions:empty {
     display: none;
   }
-  .publish-bar {
-    flex-direction: column;
-    align-items: stretch;
-    padding: 12px;
-  }
   .file-title {
     grid-column: 1;
     grid-row: 1;

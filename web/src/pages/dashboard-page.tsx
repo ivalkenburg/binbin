@@ -68,12 +68,7 @@ export function DashboardPage() {
       <Heading
         title="Your shares"
         description="Manage your files and the links you’ve shared."
-      >
-        <LinkButton variant="default" href="#new">
-          <Plus aria-hidden="true" />
-          New share
-        </LinkButton>
-      </Heading>
+      />
       <RefreshError error={shares.error} retry={shares.reload} />
       {!!shares.data.length && (
         <>

@@ -8,8 +8,6 @@ web/playwright-report
 .env
 .env.*
 !.env.example
-*.binbin-transfer.json
 web/dist
 
 binbin-backup*.tgz
-*.binbin-transfer.lock

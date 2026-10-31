@@ -12,9 +12,7 @@ pub struct User {
 pub struct Credential {
     pub id: String,
     pub user: String,
-    pub name: String,
     pub csrf: String,
-    pub session: bool,
     pub expires: i64,
 }
 #[derive(Debug, Clone)]

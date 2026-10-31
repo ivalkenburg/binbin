@@ -11,7 +11,13 @@ impl Fixture {
         let app = App::open(dir.path(), "http://localhost:8080".into()).unwrap();
         app.clock.store(1_800_000_000, Ordering::Relaxed);
         let u = app.create_admin("admin", "correct-horse-battery").unwrap();
-        let (_, actor) = app.issue(&u, "test", false).unwrap();
+        let (_, mut actor) = app.issue(&u).unwrap();
+        // Tests move the clock by months; keep the acting session valid throughout.
+        actor.credential.expires += 365 * crate::DAY;
+        app.db(|db| {
+            crate::storage::database::put(db, "credential", &actor.credential.id, &actor.credential)
+        })
+        .unwrap();
         Self {
             _dir: dir,
             app,

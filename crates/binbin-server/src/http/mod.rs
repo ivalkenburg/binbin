@@ -7,7 +7,6 @@ mod filename;
 mod middleware;
 mod settings;
 mod shares;
-mod tokens;
 mod users;
 
 use axum::{
@@ -33,7 +32,6 @@ use shares::{
     create_share, edit, edit_files, image_preview, inspect, management_transfer, public_share,
     public_transfer, publish, revoke, shares, upload, upload_proofs,
 };
-use tokens::{create_token, delete_token, tokens};
 use users::{create_user, update_user, users};
 
 async fn work<T: Send + 'static>(
@@ -69,8 +67,6 @@ pub(crate) fn router(app: App) -> Router {
         .route("/api/settings", get(settings).put(update_settings))
         .route("/api/users", get(users).post(create_user))
         .route("/api/users/{id}", patch(update_user))
-        .route("/api/tokens", get(tokens).post(create_token))
-        .route("/api/tokens/{id}", axum::routing::delete(delete_token))
         .route("/api/shares", get(shares).post(create_share))
         .route("/api/shares/{id}", get(inspect).patch(edit).delete(revoke))
         .route("/api/shares/{id}/publish", post(publish))

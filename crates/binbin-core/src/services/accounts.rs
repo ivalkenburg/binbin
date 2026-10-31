@@ -82,26 +82,15 @@ impl App {
         let u = u
             .filter(|u| u.enabled && valid)
             .ok_or_else(|| Error(401, "Invalid username or password".into()))?;
-        self.issue(&u, "Browser session", true)
+        self.issue(&u)
     }
-    fn issue_in(
-        &self,
-        db: &Connection,
-        user: &User,
-        name: &str,
-        session: bool,
-    ) -> Result<(String, Identity)> {
-        if name.trim().is_empty() || name.len() > 100 {
-            return Err(bad("Token name must contain 1–100 characters"));
-        }
+    fn issue_in(&self, db: &Connection, user: &User) -> Result<(String, Identity)> {
         let raw = secret();
         let credential = Credential {
             id: digest(&raw),
             user: user.id.clone(),
-            name: name.into(),
             csrf: secret(),
-            session,
-            expires: self.now() + if session { 7 * DAY } else { 365 * DAY },
+            expires: self.now() + 7 * DAY,
         };
         put(db, "credential", &credential.id, &credential)?;
         Ok((
@@ -112,21 +101,14 @@ impl App {
             },
         ))
     }
-    pub fn issue(&self, snapshot: &User, name: &str, session: bool) -> Result<(String, Identity)> {
+    pub fn issue(&self, snapshot: &User) -> Result<(String, Identity)> {
         self.db(|db| {
             let current: User = get(db, "user", &snapshot.id)?
                 .ok_or_else(|| Error(401, "Sign in required".into()))?;
             if !current.enabled || current.password != snapshot.password {
                 return Err(Error(401, "Authentication changed; sign in again".into()));
             }
-            self.issue_in(db, &current, name, session)
-        })
-    }
-    pub fn create_token(&self, actor: &Identity, name: &str) -> Result<(String, Identity)> {
-        self.db(|db| {
-            self.validate_identity_in(db, actor)?;
-            let user: User = get(db, "user", &actor.user.id)?.ok_or_else(unavailable)?;
-            self.issue_in(db, &user, name, false)
+            self.issue_in(db, &current)
         })
     }
     pub(crate) fn credential_valid_in(&self, db: &Connection, id: &str) -> Result<bool> {
@@ -147,22 +129,16 @@ impl App {
         }
         Ok(())
     }
-    pub fn authenticate(
-        &self,
-        raw: &str,
-        csrf: Option<&str>,
-        mutation: bool,
-        cookie: bool,
-    ) -> Result<Identity> {
+    pub fn authenticate(&self, raw: &str, csrf: Option<&str>, mutation: bool) -> Result<Identity> {
         self.db(|db| {
             let c: Credential = get(db, "credential", &digest(raw))?
                 .ok_or_else(|| Error(401, "Sign in required".into()))?;
             let u: User =
                 get(db, "user", &c.user)?.ok_or_else(|| Error(401, "Sign in required".into()))?;
-            if !u.enabled || c.expires <= self.now() || cookie && !c.session {
+            if !u.enabled || c.expires <= self.now() {
                 return Err(Error(401, "Sign in required".into()));
             }
-            if cookie && mutation && csrf != Some(&c.csrf) {
+            if mutation && csrf != Some(&c.csrf) {
                 return Err(Error(
                     403,
                     "Refresh the page and retry; request verification failed".into(),
@@ -208,22 +184,5 @@ impl App {
     pub fn users(&self, actor: &Identity) -> Result<Vec<User>> {
         self.require_admin(actor)?;
         self.authenticated_db(actor, |db| all(db, "user"))
-    }
-    pub fn tokens(&self, actor: &Identity) -> Result<Vec<Credential>> {
-        self.authenticated_db(actor, |db| {
-            Ok(all::<Credential>(db, "credential")?
-                .into_iter()
-                .filter(|credential| credential.user == actor.user.id && !credential.session)
-                .collect())
-        })
-    }
-    pub fn revoke_token(&self, actor: &Identity, id: &str) -> Result<()> {
-        self.authenticated_db(actor, |db| {
-            let credential: Credential = get(db, "credential", id)?.ok_or_else(unavailable)?;
-            if credential.user != actor.user.id || credential.session {
-                return Err(unavailable());
-            }
-            remove(db, "credential", id)
-        })
     }
 }

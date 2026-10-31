@@ -214,7 +214,7 @@ fn issuance_is_idempotent_after_the_final_public_download() {
 
 #[test]
 fn invalid_management_credentials_cannot_retain_exhausted_files() {
-    for mode in ["logout", "revoke", "disable", "reset", "expiry"] {
+    for mode in ["logout", "disable", "reset", "expiry"] {
         let fixture = Fixture::new();
         let share = fixture.published(Some(1), false);
         let id = share.share["id"].as_str().unwrap();
@@ -222,7 +222,7 @@ fn invalid_management_credentials_cannot_retain_exhausted_files() {
             .app
             .create_user(&fixture.actor, "manager", "manager-password", true)
             .unwrap();
-        let (_, manager) = fixture.app.issue(&user, "management", false).unwrap();
+        let (_, manager) = fixture.app.issue(&user).unwrap();
         let (management, _) = fixture
             .app
             .new_transfer(id, &share.files[0].id, None, &secret(), Some(&manager))
@@ -238,10 +238,6 @@ fn invalid_management_credentials_cannot_retain_exhausted_files() {
             .unwrap();
         match mode {
             "logout" => fixture.app.logout(&manager).unwrap(),
-            "revoke" => fixture
-                .app
-                .revoke_token(&manager, &manager.credential.id)
-                .unwrap(),
             "disable" => fixture
                 .app
                 .change_user(&fixture.actor, &user.id, None, false)
@@ -323,7 +319,7 @@ fn management_idempotency_is_scoped_to_independently_revocable_credentials() {
     let f = Fixture::new();
     let share = f.published(None, false);
     let id = share.share["id"].as_str().unwrap();
-    let (_, second) = f.app.create_token(&f.actor, "second credential").unwrap();
+    let (_, second) = f.app.issue(&f.actor.user).unwrap();
     let key = secret();
     let (first, _) = f
         .app
@@ -336,7 +332,7 @@ fn management_idempotency_is_scoped_to_independently_revocable_credentials() {
         .new_transfer(id, &share.files[0].id, None, &key, Some(&second))
         .unwrap();
     assert_ne!(first, other);
-    f.app.revoke_token(&second, &f.actor.credential.id).unwrap();
+    f.app.logout(&f.actor).unwrap();
     assert_eq!(f.app.download(&first, true).unwrap_err().0, 404);
     let (retry, transfer) = f
         .app
@@ -351,8 +347,8 @@ fn management_idempotency_is_scoped_to_independently_revocable_credentials() {
     assert_eq!(f.app.inspect(&second, id).unwrap().share["used"], 0);
 
     // A fresh credential can use a key held only by now-revoked credentials.
-    let (_, third) = f.app.create_token(&second, "third credential").unwrap();
-    f.app.revoke_token(&third, &second.credential.id).unwrap();
+    let (_, third) = f.app.issue(&f.actor.user).unwrap();
+    f.app.logout(&second).unwrap();
     let (independent, _) = f
         .app
         .new_transfer(id, &share.files[0].id, None, &key, Some(&third))

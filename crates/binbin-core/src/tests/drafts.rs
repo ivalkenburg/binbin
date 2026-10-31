@@ -159,7 +159,7 @@ fn draft_edits_validate_names_ownership_and_expiry() {
         .app
         .create_user(&f.actor, "other", "another-long-password", false)
         .unwrap();
-    let (_, actor) = f.app.issue(&other, "other", false).unwrap();
+    let (_, actor) = f.app.issue(&other).unwrap();
     assert_eq!(
         f.app
             .edit_files(&actor, id, EditFiles::default())
@@ -221,7 +221,7 @@ fn previews_require_complete_authorized_images_and_do_not_charge_downloads() {
         .app
         .create_user(&f.actor, "other", "another-long-password", false)
         .unwrap();
-    let (_, actor) = f.app.issue(&other, "other", false).unwrap();
+    let (_, actor) = f.app.issue(&other).unwrap();
     assert_eq!(f.app.image_preview(&actor, &file.id).unwrap_err().0, 404);
     let id = draft.share["id"].as_str().unwrap();
     f.app.publish(&f.actor, id).unwrap();

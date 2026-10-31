@@ -13,7 +13,7 @@ impl Fixture {
         let dir = tempfile::tempdir().unwrap();
         let app = App::open(dir.path(), "http://localhost:8080".into()).unwrap();
         let u = app.create_admin("admin", "correct-horse-battery").unwrap();
-        let (_, actor) = app.issue(&u, "test", false).unwrap();
+        let (_, actor) = app.issue(&u).unwrap();
         Self {
             _dir: dir,
             app,
@@ -225,12 +225,12 @@ async fn editable_draft_and_private_preview_http_contracts() {
     let fixture = Fixture::new();
     let draft = fixture.draft(None, false);
     let id = draft.share["id"].as_str().unwrap();
-    let (token, _) = fixture
-        .app
-        .issue(&fixture.actor.user, "http", false)
-        .unwrap();
-    let bearer = format!("Bearer {token}");
-    let authorization = [("authorization", bearer.as_str())];
+    let (raw, session) = fixture.app.issue(&fixture.actor.user).unwrap();
+    let cookie = format!("binbin_session={raw}");
+    let authorization = [
+        ("cookie", cookie.as_str()),
+        ("x-binbin-csrf", session.credential.csrf.as_str()),
+    ];
     let path = format!("/api/shares/{id}/files");
     assert_eq!(
         request(
@@ -459,7 +459,7 @@ async fn extractor_rejections_preserve_status_and_use_json_errors() {
     );
 }
 #[tokio::test]
-async fn http_origin_cookie_csrf_and_token_lifecycle() {
+async fn http_origin_cookie_csrf_and_session_lifecycle() {
     let f = Fixture::new();
     let (status, _, _) = request(
         &f.app,
@@ -482,60 +482,29 @@ async fn http_origin_cookie_csrf_and_token_lifecycle() {
     let cookie = h["set-cookie"].to_str().unwrap().split(';').next().unwrap();
     let v: Value = serde_json::from_slice(&b).unwrap();
     let csrf = v["csrf"].as_str().unwrap();
-    let (status, _, _) = request(
-        &f.app,
-        "POST",
-        "/api/tokens",
-        &[("cookie", cookie)],
-        json!({"name":"cli"}),
-    )
-    .await;
-    assert_eq!(status, 403);
-    let (status, _, b) = request(
-        &f.app,
-        "POST",
-        "/api/tokens",
-        &[("cookie", cookie), ("x-binbin-csrf", csrf)],
-        json!({"name":"cli"}),
-    )
-    .await;
-    assert_eq!(status, 200);
-    let t: Value = serde_json::from_slice(&b).unwrap();
-    let auth = format!("Bearer {}", t["token"].as_str().unwrap());
+    let headers = [("cookie", cookie), ("x-binbin-csrf", csrf)];
     assert_eq!(
-        request(
-            &f.app,
-            "GET",
-            "/api/me",
-            &[("authorization", &auth)],
-            json!(null)
-        )
-        .await
-        .0,
+        request(&f.app, "GET", "/api/me", &headers[..1], json!(null))
+            .await
+            .0,
         200
     );
     assert_eq!(
-        request(
-            &f.app,
-            "DELETE",
-            &format!("/api/tokens/{}", t["id"].as_str().unwrap()),
-            &[("authorization", &auth)],
-            json!(null)
-        )
-        .await
-        .0,
+        request(&f.app, "POST", "/api/logout", &headers[..1], json!(null))
+            .await
+            .0,
+        403
+    );
+    assert_eq!(
+        request(&f.app, "POST", "/api/logout", &headers, json!(null))
+            .await
+            .0,
         200
     );
     assert_eq!(
-        request(
-            &f.app,
-            "GET",
-            "/api/me",
-            &[("authorization", &auth)],
-            json!(null)
-        )
-        .await
-        .0,
+        request(&f.app, "GET", "/api/me", &headers[..1], json!(null))
+            .await
+            .0,
         401
     );
 }

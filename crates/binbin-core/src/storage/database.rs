@@ -6,6 +6,10 @@ pub(crate) fn migrate(db: &mut Connection) -> Result<()> {
     const MIGRATIONS: &[(u32, &str)] = &[
         (1, include_str!("../../migrations/0001_initial.sql")),
         (2, include_str!("../../migrations/0002_draft_removals.sql")),
+        (
+            3,
+            include_str!("../../migrations/0003_remove_api_tokens.sql"),
+        ),
     ];
     let transaction = db.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
     let current: u32 = transaction.pragma_query_value(None, "user_version", |row| row.get(0))?;

@@ -1,6 +1,6 @@
 use crate::{
     App,
-    models::Settings,
+    models::{Credential, Settings},
     storage::database::{get, put},
 };
 use rusqlite::Connection;
@@ -25,7 +25,7 @@ fn existing_version_one_database_upgrades_once_without_changing_records() {
         database
             .pragma_query_value::<u32, _>(None, "user_version", |row| row.get(0))
             .unwrap(),
-        2
+        3
     );
     assert_eq!(
         get::<serde_json::Value>(&database, "migration_fixture", "deployed")
@@ -56,13 +56,13 @@ fn existing_version_one_database_upgrades_once_without_changing_records() {
 #[test]
 fn newer_database_versions_are_rejected_without_resetting_them() {
     let mut database = Connection::open_in_memory().unwrap();
-    database.pragma_update(None, "user_version", 3).unwrap();
+    database.pragma_update(None, "user_version", 4).unwrap();
     assert!(crate::storage::database::migrate(&mut database).is_err());
     assert_eq!(
         database
             .pragma_query_value::<u32, _>(None, "user_version", |row| row.get(0))
             .unwrap(),
-        3
+        4
     );
 }
 
@@ -75,6 +75,26 @@ fn deployed_accounts_shares_and_uploaded_bytes_survive_upgrade() {
     database
         .execute_batch("DROP INDEX removed_files_by_share; PRAGMA user_version=1;")
         .unwrap();
+    let credential = |id: &str, session: bool| {
+        serde_json::json!({
+            "id": id, "user": fixture.actor.user.id, "name": "legacy", "csrf": "csrf",
+            "session": session, "expires": fixture.app.now() + 3600,
+        })
+    };
+    put(
+        &database,
+        "credential",
+        "legacy-session",
+        &credential("legacy-session", true),
+    )
+    .unwrap();
+    put(
+        &database,
+        "credential",
+        "legacy-token",
+        &credential("legacy-token", false),
+    )
+    .unwrap();
     drop(database);
     let upgraded = App::open(&fixture.app.root, fixture.app.public_url.clone()).unwrap();
     upgraded
@@ -88,4 +108,11 @@ fn deployed_accounts_shares_and_uploaded_bytes_survive_upgrade() {
     assert_eq!(current.files[0].offset, 5);
     assert_eq!(current.files[0].sha256, file.sha256);
     assert_eq!(std::fs::read(upgraded.file_path(file)).unwrap(), b"hello");
+    upgraded
+        .db(|db| {
+            assert!(get::<Credential>(db, "credential", "legacy-session")?.is_some());
+            assert!(get::<Credential>(db, "credential", "legacy-token")?.is_none());
+            Ok(())
+        })
+        .unwrap();
 }

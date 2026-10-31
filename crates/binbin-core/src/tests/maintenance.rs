@@ -256,7 +256,7 @@ fn cleanup_retains_only_shares_with_eligible_charged_current_version_transfers()
     let expired = f.transfer(&expired_share, &expired_share.files[0].id);
     f.app.download(&expired, true).unwrap();
     let revoked_share = f.published(Some(1), false);
-    let (_, revoked_actor) = f.app.create_token(&f.actor, "revoked manager").unwrap();
+    let (_, revoked_actor) = f.app.issue(&f.actor.user).unwrap();
     let (revoked, _) = f
         .app
         .new_transfer(
@@ -268,9 +268,7 @@ fn cleanup_retains_only_shares_with_eligible_charged_current_version_transfers()
         )
         .unwrap();
     f.app.download(&revoked, true).unwrap();
-    f.app
-        .revoke_token(&f.actor, &revoked_actor.credential.id)
-        .unwrap();
+    f.app.logout(&revoked_actor).unwrap();
     f.app
         .db(|db| {
             for share in [&management_share, &uncharged_share, &revoked_share] {

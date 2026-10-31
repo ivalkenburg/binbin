@@ -198,18 +198,6 @@ export function PublicPage() {
         {fileCount(share.files.length)} ·{" "}
         {bytes(share.files.reduce((n, f) => n + f.size, 0))}
       </p>
-      <div className="recipient-limits">
-        <span>
-          {share.expires
-            ? `Available until ${date(share.expires)}`
-            : "No deadline"}
-        </span>
-        <span>
-          {share.remaining === null
-            ? "Unlimited downloads"
-            : `${share.remaining} downloads remaining`}
-        </span>
-      </div>
       <FileList share={share} password={password} onStarted={started} />
       <DownloadFeedback
         share={share}
@@ -235,10 +223,18 @@ export function PublicPage() {
           })
         }
       />
-      <p className="fine muted">
-        Each file or ZIP you open or download uses one download. Retries and
-        viewing this page are free.
-      </p>
+      <div className="recipient-limits">
+        <span>
+          {share.expires
+            ? `Available until ${date(share.expires)}`
+            : "No deadline"}
+        </span>
+        <span>
+          {share.remaining === null
+            ? "Unlimited downloads"
+            : `${share.remaining} downloads remaining`}
+        </span>
+      </div>
     </Panel>
   );
 }

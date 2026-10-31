@@ -47,17 +47,14 @@ export function FileList({
             </strong>
           )}
           <span className="file-size">{bytes(file.size)}</span>
-          {downloadable &&
-            (single ? (
-              <DownloadButton {...transfer} resource={file.id} primary />
-            ) : (
-              <DownloadButton
-                {...transfer}
-                resource={file.id}
-                iconOnly
-                title={`Download ${file.name}`}
-              />
-            ))}
+          {downloadable && (
+            <DownloadButton
+              {...transfer}
+              resource={file.id}
+              iconOnly
+              title={`Download ${file.name}`}
+            />
+          )}
         </div>
       ))}
     </div>

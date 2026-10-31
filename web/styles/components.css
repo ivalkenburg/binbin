@@ -409,10 +409,9 @@ dd {
 .recipient-limits {
   display: flex;
   flex-wrap: wrap;
+  justify-content: space-between;
   gap: 8px 16px;
-  padding: 14px 0;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
+  margin-top: 16px;
   font-size: 12px;
   color: var(--muted-foreground);
 }
@@ -551,7 +550,6 @@ dd {
   margin: 0;
 }
 .file-list {
-  margin-top: 16px;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
 }

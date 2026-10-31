@@ -223,7 +223,8 @@ test("clicking anywhere on a file row opens it, and the icon button saves it", a
   await page.goto(`/#share/${share.id}`);
   const row = page.locator(".file-row").first();
   const opened = page.waitForEvent("popup");
-  await row.locator(".file-size").click();
+  const box = await row.boundingBox();
+  await row.click({ position: { x: box.width - 90, y: box.height / 2 } });
   const file = await opened;
   try {
     await file.waitForURL(/\?inline=true$/);

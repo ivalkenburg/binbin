@@ -5,16 +5,16 @@ import { seed } from "./support/shares.js";
 test("failed page requests remain readable and contained", async ({ page }) => {
   await login(page);
   const message =
-    "Cannot load API tokens. Check your connection and try again. Reference: " +
+    "Cannot load accounts. Check your connection and try again. Reference: " +
     "unbroken-reference-".repeat(5);
-  await page.route("**/api/tokens", (route) =>
+  await page.route("**/api/users", (route) =>
     route.fulfill({
       status: 503,
       contentType: "application/json",
       body: JSON.stringify({ error: message }),
     }),
   );
-  await page.getByRole("link", { name: "Settings", exact: true }).click();
+  await page.getByRole("link", { name: "Administration", exact: true }).click();
   const alert = page.locator("main").getByRole("alert");
   await expect(alert).toHaveText(message);
   const geometry = await alert.locator("p").evaluate((element) => {

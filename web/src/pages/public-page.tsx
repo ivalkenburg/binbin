@@ -213,41 +213,43 @@ export function PublicPage() {
             : `${share.remaining} downloads remaining`}
         </span>
       </div>
-      {share.files.map((file) => (
-        <div className="detail-file" key={file.id}>
-          <FileTypeIcon name={file.name} />
-          <div>
-            <FileOpenButton
-              share={share}
-              resource={file.id}
-              password={password}
-              onStarted={started}
-            >
-              {file.name}
-            </FileOpenButton>
-            <small>{bytes(file.size)}</small>
-          </div>
-          <DownloadButton
-            share={share}
-            resource={file.id}
-            password={password}
-            primary={share.files.length === 1}
-            onStarted={started}
-          />
-        </div>
-      ))}
       {share.zip_hash && (
         <DownloadButton
           share={share}
           resource="zip"
           password={password}
           primary
-          className="full"
+          className="full zip-download"
           onStarted={started}
         >
           Download all as ZIP · {bytes(share.zip_size)}
         </DownloadButton>
       )}
+      <div className="file-list">
+        {share.files.map((file) => (
+          <div className="detail-file" key={file.id}>
+            <FileTypeIcon name={file.name} />
+            <div>
+              <FileOpenButton
+                share={share}
+                resource={file.id}
+                password={password}
+                onStarted={started}
+              >
+                {file.name}
+              </FileOpenButton>
+              <small>{bytes(file.size)}</small>
+            </div>
+            <DownloadButton
+              share={share}
+              resource={file.id}
+              password={password}
+              primary={share.files.length === 1}
+              onStarted={started}
+            />
+          </div>
+        ))}
+      </div>
       <DownloadFeedback
         share={share}
         links={links}
@@ -273,8 +275,8 @@ export function PublicPage() {
         }
       />
       <p className="fine muted">
-        Opening or downloading each file or ZIP uses one download. Retries don’t
-        use another download. Opening this page doesn’t count.
+        Each file or ZIP you open or download uses one download. Retries and
+        viewing this page are free.
       </p>
     </Panel>
   );

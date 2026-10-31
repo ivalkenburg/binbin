@@ -69,7 +69,7 @@ export function AdminPage() {
                         reload();
                         setReset(null);
                         notify(
-                          "Account updated. Existing sessions and tokens were invalidated.",
+                          "Account updated. Existing sessions were invalidated.",
                         );
                       })
                     }
@@ -118,7 +118,7 @@ export function AdminPage() {
                       reload();
                       setReset(null);
                       notify(
-                        "Password reset. Existing sessions and tokens were invalidated.",
+                        "Password reset. Existing sessions were invalidated.",
                       );
                     }
                   });

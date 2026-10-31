@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { login } from "./support/session.js";
+import { seed } from "./support/shares.js";
 
 test("upload, publish, download ZIP, and revoke", async ({ page, browser }) => {
   const errors = [];
@@ -66,26 +67,6 @@ test("upload, publish, download ZIP, and revoke", async ({ page, browser }) => {
     ),
   ).toBe(true);
   await context.close();
-});
-test("create and revoke a named API token", async ({ page }) => {
-  await login(page);
-  await page.getByRole("link", { name: "Settings", exact: true }).click();
-  const name = `Test ${test.info().project.name}`;
-  await page.getByLabel("Token name").fill(name);
-  await page.getByRole("button", { name: "Create token", exact: true }).click();
-  await expect(page.getByLabel("API token", { exact: true })).toHaveValue(
-    /^[A-Za-z0-9_-]{43}$/,
-  );
-  await page.getByRole("button", { name: "I’ve saved it" }).click();
-  await expect(page.getByLabel("API token", { exact: true })).toHaveCount(0);
-  await page
-    .locator(".token-row")
-    .filter({ hasText: name })
-    .getByRole("button", { name: "Revoke", exact: true })
-    .click();
-  await expect(
-    page.locator(".token-row").filter({ hasText: name }),
-  ).toHaveCount(0);
 });
 test("password hides metadata until unlocked", async ({ page, browser }) => {
   await login(page);
@@ -173,4 +154,69 @@ test("resume a private draft and verify its existing prefix", async ({
     .getByRole("button", { name: "Publish share", exact: true })
     .click();
   await expect(page.locator("#share-url")).toBeVisible();
+});
+
+test("dashboard filters by status, sorts, and copies a share link", async ({
+  page,
+}) => {
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+  await login(page);
+  const suffix = `dash${Date.now()}`;
+  const published = await seed(page, { title: `Zulu ${suffix}` });
+  await seed(page, { title: `Alpha ${suffix}`, partial: true });
+  await page.reload();
+  const rows = page.locator(".share-row").filter({ hasText: suffix });
+  await expect(rows).toHaveCount(2);
+  const chips = page.getByRole("group", { name: "Status" });
+  await chips.getByRole("button", { name: /^Draft/ }).click();
+  await expect(rows).toHaveCount(1);
+  await expect(rows.first()).toContainText(`Alpha ${suffix}`);
+  await chips.getByRole("button", { name: /^All shares/ }).click();
+  await page.getByLabel("Sort shares").selectOption("title");
+  await expect(rows.first()).toContainText(`Alpha ${suffix}`);
+  await expect(
+    rows.first().getByRole("button", { name: "Copy link" }),
+  ).toHaveCount(0);
+  await rows
+    .filter({ hasText: `Zulu ${suffix}` })
+    .getByRole("button", { name: "Copy link" })
+    .click();
+  await expect(page.locator("#notice")).toContainText("Link copied");
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+    published.url,
+  );
+});
+
+test("expiry and allowance presets fill the new share form", async ({
+  page,
+}) => {
+  await login(page);
+  await page
+    .getByRole("link", { name: "New share", exact: true })
+    .first()
+    .click();
+  const days = page.getByLabel("Expires after (days)", { exact: true });
+  const allowance = page.getByLabel("Download allowance", { exact: true });
+  await page
+    .getByRole("group", { name: "days presets" })
+    .getByRole("button", { name: "30", exact: true })
+    .click();
+  await expect(days).toHaveValue("30");
+  await page
+    .getByRole("group", { name: "days presets" })
+    .getByRole("button", { name: "No deadline" })
+    .click();
+  await expect(days).toHaveValue("");
+  await page
+    .getByRole("group", { name: "limit presets" })
+    .getByRole("button", { name: "5", exact: true })
+    .click();
+  await expect(allowance).toHaveValue("5");
+  await page.getByRole("link", { name: "Shares", exact: true }).click();
+  await page
+    .getByRole("link", { name: "New share", exact: true })
+    .first()
+    .click();
+  await expect(days).toHaveValue("");
+  await expect(allowance).toHaveValue("5");
 });

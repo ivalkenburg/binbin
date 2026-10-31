@@ -12,7 +12,7 @@
   .share-row {
     grid-template-columns:
       minmax(0, 2fr) minmax(0, 0.7fr) minmax(0, 1fr)
-      minmax(0, 0.8fr);
+      minmax(0, 0.8fr) 32px;
   }
   .list-head > span:nth-child(4),
   .share-row > .deadline {
@@ -50,7 +50,7 @@
 }
 @media (max-width: 760px) {
   .header-inner {
-    padding: 14px 20px 10px;
+    padding: 10px 20px 8px;
   }
   main {
     padding: 30px 20px 48px;
@@ -69,9 +69,6 @@
   .page-heading {
     margin-bottom: 24px;
     gap: 16px;
-  }
-  .storage-line > span:last-child {
-    display: none;
   }
   .recipient main {
     padding-top: 36px;
@@ -101,7 +98,7 @@
     padding-inline: 16px;
   }
   .page-heading h1 {
-    font-size: 23px;
+    font-size: 20px;
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
@@ -126,7 +123,7 @@
     min-width: 130px;
   }
   .list-tools > label:last-child {
-    width: 128px;
+    width: 132px;
   }
   .list-head {
     display: none;
@@ -134,11 +131,23 @@
   .share-row {
     grid-template-columns: minmax(0, 1fr) minmax(0, 100px);
     gap: 8px 12px;
-    padding: 16px;
+    padding: 14px 16px;
   }
-  .share-row:first-of-type {
-    border-top: 0;
-    border-radius: var(--radius) var(--radius) 0 0;
+  .row-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    padding-left: 28px;
+  }
+  .row-actions:empty {
+    display: none;
+  }
+  .publish-bar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px;
+  }
+  .link-actions {
+    grid-template-columns: minmax(0, 1fr);
   }
   .file-title {
     grid-column: 1;
@@ -158,10 +167,6 @@
   }
   .share-row > .downloads {
     text-align: right;
-    font-size: 11px;
-  }
-  .storage-line {
-    gap: 8px;
     font-size: 11px;
   }
   .work-area,
@@ -205,7 +210,7 @@
     padding: 28px 16px 40px;
   }
   .recipient-share h1 {
-    font-size: 21px;
+    font-size: 19px;
   }
   .recipient-limits {
     flex-direction: column;

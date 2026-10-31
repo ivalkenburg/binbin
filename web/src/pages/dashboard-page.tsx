@@ -7,99 +7,136 @@ import {
   statusLabels,
 } from "@/components/common";
 import { LinkButton } from "@/components/link-button";
-import { Progress } from "@/components/ui/progress";
+import { IconButton } from "@/components/icon-button";
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { Files, Upload, Plus, Search, HardDrive } from "lucide-react";
+import { Copy, Files, Upload, Plus, Search } from "lucide-react";
+import { useApp } from "@/app/context";
 import { useRemote } from "@/hooks/use-remote";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
-import { bytes, date, fileCount } from "@/lib/format";
-import type { Limits, Share } from "@/types/api";
+import { copyText } from "@/lib/clipboard";
+import { errorMessage } from "@/lib/api";
+import { DRAFT_LIFETIME, bytes, date, fileCount, timeLeft } from "@/lib/format";
+import type { Share } from "@/types/api";
+const sorters: Record<string, [string, (a: Share, b: Share) => number]> = {
+  newest: ["Newest first", (a, b) => b.created - a.created],
+  oldest: ["Oldest first", (a, b) => a.created - b.created],
+  title: ["Title A–Z", (a, b) => a.title.localeCompare(b.title)],
+  size: ["Largest first", (a, b) => b.original_size - a.original_size],
+  deadline: [
+    "Deadline soonest",
+    (a, b) =>
+      (a.expires ?? Infinity) - (b.expires ?? Infinity) ||
+      b.created - a.created,
+  ],
+};
+const deadline = (s: Share) =>
+  s.state === "draft"
+    ? `Draft · ${timeLeft(s.created + DRAFT_LIFETIME)}`
+    : date(s.expires);
 export function DashboardPage() {
   const shares = useRemote<Share[]>("/api/shares");
-  const limits = useRemote<Limits>("/api/settings");
+  const { notify } = useApp();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
-  if (!shares.data || !limits.data)
-    return <Loading error={shares.error || limits.error} />;
-  const filtered = shares.data.filter(
-    (s) =>
-      s.title.toLowerCase().includes(search.toLowerCase()) &&
-      (!status || s.state === status),
+  const [sort, setSort] = useState("newest");
+  if (!shares.data) return <Loading error={shares.error} />;
+  const counts: Record<string, number> = {};
+  for (const s of shares.data) counts[s.state] = (counts[s.state] ?? 0) + 1;
+  const states = ["active", "draft", "expired", "exhausted", "revoked"].filter(
+    (state) => counts[state],
   );
+  const chips: [string, string, number][] = [
+    ["", "All shares", shares.data.length],
+    ...states.map((s): [string, string, number] => [
+      s,
+      statusLabels[s],
+      counts[s],
+    ]),
+  ];
+  const filtered = shares.data
+    .filter(
+      (s) =>
+        s.title.toLowerCase().includes(search.toLowerCase()) &&
+        (!status || s.state === status),
+    )
+    .sort(sorters[sort][1]);
   return (
     <>
       <Heading
         title="Your shares"
         description="Manage your files and the links you’ve shared."
       >
-        <LinkButton
-          variant="default"
-
-          href="#new"
-        >
+        <LinkButton variant="default" href="#new">
           <Plus aria-hidden="true" />
           New share
         </LinkButton>
       </Heading>
-      <RefreshError
-        error={shares.error || limits.error}
-        retry={() => {
-          shares.reload();
-          limits.reload();
-        }}
-      />
-      <div className="storage-line">
-        <HardDrive aria-hidden="true" />
-        <span>
-          {bytes(limits.data.used)} of{" "}
-          {bytes(limits.data.settings.storage_limit)} reserved
-        </span>
-        <Progress
-          aria-label="Storage usage"
-          value={(limits.data.used / limits.data.settings.storage_limit) * 100}
-        />
-        <span>Drafts and ZIPs included</span>
-      </div>
-      <div className="list-tools">
-        <Label className="search">
-          <span className="sr-only">Search shares</span>
-          <Search className="search-icon" aria-hidden="true" />
-          <Input
-            id="search"
-            type="search"
-            placeholder="Search by title…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </Label>
-        <Label>
-          <span className="sr-only">Filter by status</span>
-          <NativeSelect
-            id="status-filter"
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-          >
-            <option value="">All shares</option>
-            {["active", "draft", "expired", "exhausted", "revoked"].map((s) => (
-              <option key={s} value={s}>
-                {statusLabels[s]}
-              </option>
-            ))}
-          </NativeSelect>
-        </Label>
-      </div>
+      <RefreshError error={shares.error} retry={shares.reload} />
+      {!!shares.data.length && (
+        <>
+          <div className="list-tools">
+            <Label className="search">
+              <span className="sr-only">Search shares</span>
+              <Search className="search-icon" aria-hidden="true" />
+              <Input
+                id="search"
+                type="search"
+                placeholder="Search by title…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </Label>
+            <Label>
+              <span className="sr-only">Sort shares</span>
+              <NativeSelect
+                id="sort"
+                value={sort}
+                onChange={(e) => setSort(e.target.value)}
+              >
+                {Object.entries(sorters).map(([key, [label]]) => (
+                  <option key={key} value={key}>
+                    {label}
+                  </option>
+                ))}
+              </NativeSelect>
+            </Label>
+          </div>
+          {states.length > 1 && (
+            <div className="filter-chips" role="group" aria-label="Status">
+              {chips.map(([key, label, count]) => (
+                <Button
+                  key={key}
+                  type="button"
+                  size="sm"
+                  variant={status === key ? "secondary" : "ghost"}
+                  aria-pressed={status === key}
+                  data-status={key}
+                  onClick={() => setStatus(key)}
+                >
+                  {label}
+                  <span className="chip-count">{count}</span>
+                </Button>
+              ))}
+            </div>
+          )}
+        </>
+      )}
       <section className="share-list" aria-label="Shares">
-        <div className="list-head">
-          <span>Share</span>
-          <span>Size</span>
-          <span>Downloads</span>
-          <span>Deadline</span>
-          <span>Status</span>
-        </div>
+        {!!shares.data.length && (
+          <div className="list-head">
+            <span>Share</span>
+            <span>Size</span>
+            <span>Downloads</span>
+            <span>Deadline</span>
+            <span>Status</span>
+            <span />
+          </div>
+        )}
         {filtered.map((s) => (
-          <a className="share-row" href={`#share/${s.id}`} key={s.id}>
+          <div className="share-row" key={s.id}>
             <div className="file-title">
               {s.files.length === 1 ? (
                 <FileTypeIcon name={s.files[0].name} />
@@ -107,7 +144,9 @@ export function DashboardPage() {
                 <Files aria-hidden="true" />
               )}
               <span>
-                <strong>{s.title}</strong>
+                <a className="share-link" href={`#share/${s.id}`}>
+                  <strong>{s.title}</strong>
+                </a>
                 <small>
                   {fileCount(s.files.length)}
                   {s.password_protected ? " · Password protected" : ""}
@@ -118,22 +157,33 @@ export function DashboardPage() {
             <span className="downloads">
               {s.used} / {s.limit ?? "unlimited"}
             </span>
-            <span className="deadline">
-              {s.state === "draft" ? "Unpublished" : date(s.expires)}
-            </span>
+            <span className="deadline">{deadline(s)}</span>
             <Status state={s.state} />
-          </a>
+            <span className="row-actions">
+              {s.state === "active" && (
+                <IconButton
+                  label="Copy link"
+                  size="icon-sm"
+                  data-action="copy-row"
+                  onClick={() =>
+                    void copyText(s.url).then(
+                      () => notify(`Link copied for “${s.title}”.`),
+                      (error) => notify(errorMessage(error), true),
+                    )
+                  }
+                >
+                  <Copy aria-hidden="true" />
+                </IconButton>
+              )}
+            </span>
+          </div>
         ))}
         {!shares.data.length && (
           <div className="empty">
             <Upload aria-hidden="true" />
             <h2>No shares yet.</h2>
             <p>Upload files and create your first share link.</p>
-            <LinkButton
-              variant="default"
-
-              href="#new"
-            >
+            <LinkButton variant="default" href="#new">
               <Plus aria-hidden="true" />
               Create a share
             </LinkButton>
@@ -147,10 +197,6 @@ export function DashboardPage() {
           No shares match your search.
         </p>
       </section>
-      <p className="fine muted">
-        Public downloads count toward the allowance. Your management downloads
-        do not.
-      </p>
     </>
   );
 }

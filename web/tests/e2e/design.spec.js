@@ -204,48 +204,6 @@ test("every page and transient state fits its viewport", async ({
   );
   await checkLayout(page, "delete-confirmation");
   await page.getByRole("button", { name: "Keep share" }).click();
-  await page.getByRole("link", { name: "Settings", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "API tokens" })).toBeVisible();
-  await checkLayout(page, "settings");
-  await page
-    .getByLabel("Token name")
-    .fill("Long device name " + "workstation ".repeat(6));
-  await page.getByRole("button", { name: "Create token", exact: true }).click();
-  await expect(page.locator("#token-value")).toBeVisible();
-  await checkLayout(page, "token-reveal");
-  await page
-    .getByRole("button", { name: "I’ve saved it", exact: true })
-    .click();
-  let failRefresh = true;
-  const refreshRoute = (route) => {
-    if (route.request().method() === "GET" && failRefresh) {
-      failRefresh = false;
-      return route.fulfill({
-        status: 503,
-        contentType: "application/json",
-        body: JSON.stringify({
-          error:
-            "Temporary refresh failure. Try again to update these details.",
-        }),
-      });
-    }
-    return route.continue();
-  };
-  await page.route("**/api/tokens", refreshRoute);
-  await page
-    .locator(".token-row")
-    .last()
-    .getByRole("button", { name: "Revoke", exact: true })
-    .click();
-  await expect(
-    page.getByText("Couldn’t refresh. Details shown may be out of date."),
-  ).toBeVisible();
-  await checkLayout(page, "refresh-error");
-  await page.getByRole("button", { name: "Try again", exact: true }).click();
-  await expect(
-    page.getByText("Couldn’t refresh. Details shown may be out of date."),
-  ).not.toBeVisible();
-  await page.unroute("**/api/tokens", refreshRoute);
   await page.getByRole("link", { name: "Administration", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Accounts", exact: true }),
@@ -272,11 +230,36 @@ test("every page and transient state fits its viewport", async ({
   expect(toast.width).toBeLessThanOrEqual(360);
   await page.getByRole("button", { name: "Dismiss notification" }).click();
   await expect(page.locator("#notice")).not.toBeVisible();
+  let failRefresh = true;
+  const refreshRoute = (route) => {
+    if (route.request().method() === "GET" && failRefresh) {
+      failRefresh = false;
+      return route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({
+          error:
+            "Temporary refresh failure. Try again to update these details.",
+        }),
+      });
+    }
+    return route.continue();
+  };
+  await page.route("**/api/users", refreshRoute);
   await page
     .locator(".user-row")
     .filter({ hasText: username })
     .getByRole("button", { name: "Enable", exact: true })
     .click();
+  await expect(
+    page.getByText("Couldn’t refresh. Details shown may be out of date."),
+  ).toBeVisible();
+  await checkLayout(page, "refresh-error");
+  await page.getByRole("button", { name: "Try again", exact: true }).click();
+  await expect(
+    page.getByText("Couldn’t refresh. Details shown may be out of date."),
+  ).not.toBeVisible();
+  await page.unroute("**/api/users", refreshRoute);
   const uploaderContext = await browser.newContext({
     viewport: page.viewportSize(),
     colorScheme: test.info().project.use.colorScheme,
@@ -296,11 +279,6 @@ test("every page and transient state fits its viewport", async ({
     uploader.getByRole("link", { name: "Administration", exact: true }),
   ).toHaveCount(0);
   await checkLayout(uploader, "uploader-empty-shares");
-  await uploader.getByRole("link", { name: "Settings", exact: true }).click();
-  await expect(
-    uploader.getByText("No API tokens yet.", { exact: true }),
-  ).toBeVisible();
-  await checkLayout(uploader, "uploader-empty-settings");
   await uploaderContext.close();
   const context = await browser.newContext({
     viewport: page.viewportSize(),
@@ -440,7 +418,7 @@ test("theme selection cycles one icon and persists on navigation", async ({
   await theme.click();
   await login(page);
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-  await page.getByRole("link", { name: "Settings", exact: true }).click();
+  await page.getByRole("link", { name: "Administration", exact: true }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await theme.click();
   await theme.click();

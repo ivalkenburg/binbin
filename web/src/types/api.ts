@@ -57,11 +57,6 @@ export interface PublicShare {
   expires: number | null;
   remaining: number | null;
 }
-export interface Token {
-  id: string;
-  name: string;
-  expires: number;
-}
 export interface NewShare {
   title: string;
   files: { name: string; size: number }[];

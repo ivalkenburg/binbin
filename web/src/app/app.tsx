@@ -1,6 +1,6 @@
 import { LinkButton } from "@/components/link-button";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
-import { Files, FilePlus2, Settings, Shield, LogOut, X } from "lucide-react";
+import { Files, FilePlus2, Shield, LogOut, X } from "lucide-react";
 import { AppContext } from "./context";
 import {
   api,
@@ -20,7 +20,6 @@ import { LoginPage } from "@/pages/login-page";
 import { DashboardPage } from "@/pages/dashboard-page";
 import { NewSharePage } from "@/pages/new-share-page";
 import { SharePage } from "@/pages/share-page";
-import { SettingsPage } from "@/pages/settings-page";
 import { AdminPage } from "@/pages/admin-page";
 import { PublicPage } from "@/pages/public-page";
 import type { Session } from "@/types/api";
@@ -137,8 +136,6 @@ export function App() {
     <NewSharePage />
   ) : page === "share" && id ? (
     <SharePage id={id} />
-  ) : page === "settings" ? (
-    <SettingsPage />
   ) : page === "admin" && session.user.admin ? (
     <AdminPage />
   ) : (
@@ -195,7 +192,6 @@ export function App() {
                   [
                     ["shares", "Shares", Files],
                     ["new", "New share", FilePlus2],
-                    ["settings", "Settings", Settings],
                     ...(session.user.admin
                       ? [["admin", "Administration", Shield] as const]
                       : []),

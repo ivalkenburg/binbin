@@ -10,7 +10,6 @@ import { LinkButton } from "@/components/link-button";
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
-  Check,
   Copy,
   ExternalLink,
   Pencil,
@@ -26,18 +25,28 @@ import { useRemote } from "@/hooks/use-remote";
 import { useTask } from "@/hooks/use-task";
 import { api } from "@/lib/api";
 import {
+  DRAFT_LIFETIME,
   bytes,
   date,
   fileCount,
   localDate,
   optionalNumber,
+  timeLeft,
 } from "@/lib/format";
+import { copyText } from "@/lib/clipboard";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckField, Field } from "@/components/forms";
 import { FilePicker } from "@/components/file-picker";
 import { DownloadButton, FileOpenButton } from "@/components/download-controls";
-import { IconButton } from "@/components/icon-button";
 import { FileTypeIcon } from "@/components/file-preview";
 import { collectionErrors } from "@/transfers/upload-manager";
 import type { Limits, Share } from "@/types/api";
@@ -65,10 +74,18 @@ export function SharePage({ id }: { id: string }) {
         title={share.title}
         description={`${fileCount(share.files.length)} · ${bytes(share.original_size)} · Created ${date(share.created)}`}
         titleSuffix={
-          <Status
-            state={share.state}
-            className="h-auto px-2.5 py-0.5 text-2xl font-semibold leading-[1.3] tracking-tight [@media(max-width:480px)]:text-[23px]"
-          />
+          <>
+            <Status state={share.state} className="heading-badge" />
+            {share.state === "draft" && (
+              <Badge
+                variant="outline"
+                className="heading-badge"
+                title={`Draft expires ${date(share.created + DRAFT_LIFETIME)}`}
+              >
+                {timeLeft(share.created + DRAFT_LIFETIME)}
+              </Badge>
+            )}
+          </>
         }
       />
       <RefreshError error={error} retry={reload} />
@@ -122,6 +139,9 @@ export function SharePage({ id }: { id: string }) {
         </Panel>
         <ShareSettings share={share} reload={reload} />
       </div>
+      {share.state === "draft" && (
+        <PublishShare share={share} reload={reload} />
+      )}
     </>
   );
 }
@@ -144,13 +164,9 @@ function DraftFiles({ share }: { share: Share }) {
   const resuming =
     value.paused ||
     unfinished.some((item) => item.resuming || (item.stored?.offset ?? 0) > 0);
-  const expired = share.created + 86400 <= Date.now() / 1000;
+  const expired = share.created + DRAFT_LIFETIME <= Date.now() / 1000;
   return (
     <>
-      <p className="draft-description">
-        Draft expires {date(share.created + 86400)}. Files stay private until
-        you publish.
-      </p>
       {selectable && (
         <div className="resume-guidance">
           <h3>Resume this upload</h3>
@@ -185,13 +201,13 @@ function DraftFiles({ share }: { share: Share }) {
           </Button>
         </div>
       )}
-      <p className="fine muted">
-        {expired
-          ? "This draft has expired. Create a new share to upload these files."
-          : unfinished.length
-            ? "Upload or remove every unfinished file before publishing."
-            : "The expiry clock starts when you publish."}
-      </p>
+      {(expired || !!unfinished.length) && (
+        <p className="fine muted">
+          {expired
+            ? "This draft has expired. Create a new share to upload these files."
+            : "Upload or remove every unfinished file before publishing."}
+        </p>
+      )}
     </>
   );
 }
@@ -199,33 +215,38 @@ function PublishShare({ share, reload }: { share: Share; reload: () => void }) {
   const { uploads, notify } = useApp();
   const value = uploads.get(share.id);
   const items = value?.items.filter((item) => !item.removedAt) ?? [];
+  const uploaded = items.filter((item) => item.state === "uploaded").length;
   const ready =
     !!value &&
     !!items.length &&
-    items.every((item) => item.state === "uploaded") &&
+    uploaded === items.length &&
     !value.running &&
     !value.pending &&
     !value.publishing;
-  const expired = share.created + 86400 <= Date.now() / 1000;
+  const expired = share.created + DRAFT_LIFETIME <= Date.now() / 1000;
   return (
-    <Button
-      type="button"
-      className="full"
-      data-action="publish"
-      disabled={!ready || expired}
-      onClick={() =>
-        void uploads
-          .publish(share.id)
-          .then(() => {
-            reload();
-            notify("Your share is ready. Copy the link to send it.");
-          })
-          .catch(() => {})
-      }
-    >
-      <Share2 aria-hidden="true" />
-      {value?.publishing ? "Preparing ZIP and publishing…" : "Publish share"}
-    </Button>
+    <div className="publish-bar">
+      <span className="publish-summary" role="status">
+        {uploaded} of {fileCount(items.length)} uploaded
+      </span>
+      <Button
+        type="button"
+        data-action="publish"
+        disabled={!ready || expired}
+        onClick={() =>
+          void uploads
+            .publish(share.id)
+            .then(() => {
+              reload();
+              notify("Your share is ready. Copy the link to send it.");
+            })
+            .catch(() => {})
+        }
+      >
+        <Share2 aria-hidden="true" />
+        {value?.publishing ? "Preparing ZIP and publishing…" : "Publish share"}
+      </Button>
+    </div>
   );
 }
 function ShareSettings({
@@ -259,6 +280,42 @@ function ShareSettings({
         )}
       </div>
       <div id="share-overview" hidden={editing}>
+        {s.state === "active" && (
+          <div className="share-link-block">
+            <Field
+              label="Share link"
+              id="share-url"
+              ref={link}
+              readOnly
+              value={s.url}
+            />
+            <div className="link-actions">
+              <Button
+                variant="default"
+                data-action="copy"
+                onClick={() =>
+                  void run(async () => {
+                    link.current?.select();
+                    await copyText(s.url);
+                    notify("Copied to clipboard.");
+                  })
+                }
+              >
+                <Copy aria-hidden="true" />
+                Copy link
+              </Button>
+              <LinkButton
+                variant="outline"
+                href={s.url}
+                target="_blank"
+                rel="noopener"
+              >
+                <ExternalLink aria-hidden="true" />
+                Open public page
+              </LinkButton>
+            </div>
+          </div>
+        )}
         <dl>
           {[
             [
@@ -276,52 +333,15 @@ function ShareSettings({
           ))}
         </dl>
         {s.state === "active" && (
-          <>
-            <div className="copy-field">
-              <Field
-                label="Share link"
-                id="share-url"
-                ref={link}
-                readOnly
-                value={s.url}
-              />
-              <IconButton
-                label="Copy link"
-                variant="outline"
-                data-action="copy"
-                onClick={() =>
-                  void run(async () => {
-                    link.current?.select();
-                    if (navigator.clipboard)
-                      await navigator.clipboard.writeText(s.url);
-                    else document.execCommand("copy");
-                    notify("Copied to clipboard.");
-                  })
-                }
-              >
-                <Copy aria-hidden="true" />
-              </IconButton>
-            </div>
-            <LinkButton
-              variant="outline"
-              className="full"
-              href={s.url}
-              target="_blank"
-              rel="noopener"
-            >
-              <ExternalLink aria-hidden="true" />
-              Open public page
-            </LinkButton>
-            <Button
-              variant="outline"
-              className="full"
-              data-action="edit"
-              onClick={() => setEditing(true)}
-            >
-              <Pencil aria-hidden="true" />
-              Edit settings
-            </Button>
-          </>
+          <Button
+            variant="outline"
+            className="full"
+            data-action="edit"
+            onClick={() => setEditing(true)}
+          >
+            <Pencil aria-hidden="true" />
+            Edit settings
+          </Button>
         )}
       </div>
       {editing && (
@@ -402,7 +422,6 @@ function ShareSettings({
       {!editing &&
         (["active", "draft", "exhausted"].includes(s.state) ? (
           <div className="share-actions">
-            {s.state === "draft" && <PublishShare share={s} reload={reload} />}
             <Button
               className="full"
               variant="destructive"
@@ -415,41 +434,45 @@ function ShareSettings({
               <Trash2 aria-hidden="true" />
               Revoke and delete
             </Button>
-            {confirming && (
-              <Alert variant="destructive" id="delete-confirm">
-                <AlertDescription>
-                  This permanently removes access and files. There is no undo.
-                </AlertDescription>
-                <Button
-                  variant="destructive"
-                  data-action="delete"
-                  disabled={pending}
-                  onClick={() =>
-                    void run(async (signal) => {
-                      uploads.pause(s.id);
-                      await api(`/api/shares/${s.id}`, {
-                        method: "DELETE",
-                        signal,
-                      });
-                      setConfirming(false);
-                      reload();
-                      notify("Share removed.");
-                    })
-                  }
-                >
-                  <Trash2 aria-hidden="true" />
-                  Confirm deletion
-                </Button>
-                <Button
-                  variant="outline"
-                  data-action="keep"
-                  onClick={() => setConfirming(false)}
-                >
-                  <Check aria-hidden="true" />
-                  Keep share
-                </Button>
-              </Alert>
-            )}
+            <Dialog open={confirming} onOpenChange={setConfirming}>
+              <DialogContent id="delete-confirm" showCloseButton={false}>
+                <DialogHeader>
+                  <DialogTitle>Delete “{s.title}”?</DialogTitle>
+                  <DialogDescription>
+                    This permanently removes access and files. There is no undo.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    data-action="keep"
+                    onClick={() => setConfirming(false)}
+                  >
+                    Keep share
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    data-action="delete"
+                    disabled={pending}
+                    onClick={() =>
+                      void run(async (signal) => {
+                        uploads.pause(s.id);
+                        await api(`/api/shares/${s.id}`, {
+                          method: "DELETE",
+                          signal,
+                        });
+                        setConfirming(false);
+                        reload();
+                        notify("Share removed.");
+                      })
+                    }
+                  >
+                    <Trash2 aria-hidden="true" />
+                    Confirm deletion
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         ) : (
           <p className="muted">

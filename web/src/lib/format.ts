@@ -20,3 +20,10 @@ export function localDate(t: number) {
 export function optionalNumber(value: FormDataEntryValue | null) {
   return value ? Number(value) : null;
 }
+export function timeLeft(until: number, now = Date.now() / 1000) {
+  const seconds = until - now;
+  if (seconds <= 0) return "Expired";
+  const hours = Math.floor(seconds / 3600);
+  return hours >= 1 ? `${hours}h left` : `${Math.ceil(seconds / 60)}m left`;
+}
+export const DRAFT_LIFETIME = 86400;

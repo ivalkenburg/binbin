@@ -206,9 +206,9 @@ test("files added during an upload join its queue while navigation remains avail
   });
   await page.getByRole("button", { name: "Upload files", exact: true }).click();
   await started;
-  await page.getByRole("link", { name: "Settings", exact: true }).click();
+  await page.getByRole("link", { name: "Administration", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Settings", exact: true }),
+    page.getByRole("heading", { name: "Administration", exact: true }),
   ).toBeVisible();
   await page.locator("#active-uploads a").click();
   await page.locator("#files").setInputFiles(text("second.txt"));
@@ -353,7 +353,7 @@ test("screenshot paste appends images, respects fields, and preserves selection 
   await expect(rows(page).last()).toContainText(/Screenshot \d{4}-\d{2}-\d{2}/);
   await page.getByLabel("Title", { exact: true }).fill("Retained details");
   await page.getByLabel("Download allowance", { exact: true }).fill("3");
-  await page.getByRole("link", { name: "Settings", exact: true }).click();
+  await page.getByRole("link", { name: "Administration", exact: true }).click();
   await page
     .getByRole("link", { name: "New share", exact: true })
     .first()
@@ -440,7 +440,7 @@ test("pause preserves local files and resumes a chunk whose response was lost", 
   await page.getByRole("button", { name: /^Pause upload/ }).click();
   await expect(page.locator("#active-uploads")).not.toBeVisible();
   release();
-  await page.getByRole("link", { name: "Settings", exact: true }).click();
+  await page.getByRole("link", { name: "Administration", exact: true }).click();
   await page.getByRole("link", { name: "Shares", exact: true }).click();
   await page
     .locator(".share-row")
@@ -530,9 +530,9 @@ test("fresh draft metadata reconciles external edits and ignores older delayed s
 }) => {
   await start(page, text());
   const id = await page.evaluate(() => location.hash.split("/")[1]);
-  await page.getByRole("link", { name: "Settings", exact: true }).click();
+  await page.getByRole("link", { name: "Administration", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Settings", exact: true }),
+    page.getByRole("heading", { name: "Administration", exact: true }),
   ).toBeVisible();
   await page.evaluate(async (id) => {
     const me = await (await fetch("/api/me")).json();
@@ -544,9 +544,9 @@ test("fresh draft metadata reconciles external edits and ignores older delayed s
   }, id);
   await page.goto(`/#share/${id}`);
   await expect(rows(page)).toHaveCount(2);
-  await page.getByRole("link", { name: "Settings", exact: true }).click();
+  await page.getByRole("link", { name: "Administration", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Settings", exact: true }),
+    page.getByRole("heading", { name: "Administration", exact: true }),
   ).toBeVisible();
   let release;
   const held = new Promise((resolve) => {

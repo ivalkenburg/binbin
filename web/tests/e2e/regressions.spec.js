@@ -38,8 +38,8 @@ test("draft creation survives navigation before its first response", async ({
   });
   await page.getByRole("button", { name: "Upload files", exact: true }).click();
   await entered.promise;
-  await page.getByRole("link", { name: "Settings", exact: true }).click();
-  await expect(page).toHaveURL(/#settings$/);
+  await page.getByRole("link", { name: "Administration", exact: true }).click();
+  await expect(page).toHaveURL(/#admin$/);
   await expect(page.locator("#active-uploads")).toContainText(
     "Creating private draft",
   );
@@ -50,9 +50,9 @@ test("draft creation survives navigation before its first response", async ({
   );
   waiting.release();
   await completed;
-  await expect(page).toHaveURL(/#settings$/);
+  await expect(page).toHaveURL(/#admin$/);
   await expect(
-    page.getByRole("heading", { name: "Settings", exact: true }),
+    page.getByRole("heading", { name: "Administration", exact: true }),
   ).toBeVisible();
   expect(errors).toEqual([]);
 });
@@ -88,7 +88,7 @@ test("signing out cancels pending draft setup without locking later uploads", as
   expect(errors).toEqual([]);
 });
 
-test("late share responses cannot replace Settings and skip links preserve the route", async ({
+test("late share responses cannot replace Administration and skip links preserve the route", async ({
   page,
 }) => {
   await login(page);
@@ -105,15 +105,15 @@ test("late share responses cannot replace Settings and skip links preserve the r
   });
   await page.evaluate((id) => (location.hash = `share/${id}`), share.id);
   await entered.promise;
-  await page.getByRole("link", { name: "Settings", exact: true }).click();
+  await page.getByRole("link", { name: "Administration", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Settings", exact: true }),
+    page.getByRole("heading", { name: "Administration", exact: true }),
   ).toBeVisible();
   waiting.release();
   await finished.promise;
   await page.unroute(`**/api/shares/${share.id}`);
   await expect(
-    page.getByRole("heading", { name: "Settings", exact: true }),
+    page.getByRole("heading", { name: "Administration", exact: true }),
   ).toBeVisible();
   await page.goto(`/#share/${share.id}`);
   await expect(
@@ -270,9 +270,9 @@ test("logout aborts stalled resume verification before a new sign-in", async ({
   await expect(
     page.getByRole("heading", { name: "Resume this upload" }),
   ).toBeVisible();
-  await page.getByRole("link", { name: "Settings", exact: true }).click();
+  await page.getByRole("link", { name: "Administration", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Settings", exact: true }),
+    page.getByRole("heading", { name: "Administration", exact: true }),
   ).toBeVisible();
   waiting.release();
   expect(errors).toEqual([]);
@@ -345,16 +345,18 @@ test("invalidated sessions leave management on mutations and sign out", async ({
     await uploader
       .getByRole("button", { name: "Sign in", exact: true })
       .click();
-    await uploader.getByRole("link", { name: "Settings", exact: true }).click();
-    await expect(uploader.getByLabel("Token name")).toBeVisible();
+    await uploader
+      .getByRole("link", { name: "New share", exact: true })
+      .first()
+      .click();
+    await expect(
+      uploader.getByRole("heading", { name: "New share", exact: true }),
+    ).toBeVisible();
     await adminRequest(page, `/api/users/${account.id}`, "PATCH", {
       password: "replacement-session-password",
       enabled: true,
     });
-    await uploader.getByLabel("Token name").fill("invalidated credential");
-    await uploader
-      .getByRole("button", { name: "Create token", exact: true })
-      .click();
+    await uploader.getByRole("link", { name: "Shares", exact: true }).click();
     await expect(uploader.locator("#login")).toBeVisible();
     await uploader
       .getByLabel("Username", { exact: true })
@@ -365,7 +367,9 @@ test("invalidated sessions leave management on mutations and sign out", async ({
     await uploader
       .getByRole("button", { name: "Sign in", exact: true })
       .click();
-    await expect(uploader.getByLabel("Token name")).toBeVisible();
+    await expect(
+      uploader.getByRole("heading", { name: "No shares yet." }),
+    ).toBeVisible();
     await adminRequest(page, `/api/users/${account.id}`, "PATCH", {
       password: "second-replacement-password",
       enabled: true,
@@ -486,15 +490,18 @@ test("a failed refresh retains data with a visible retry and then recovers", asy
   page,
 }) => {
   await login(page);
-  await page.getByRole("link", { name: "Settings", exact: true }).click();
-  await page.getByLabel("Token name").fill("refresh failure regression");
-  await page.getByRole("button", { name: "Create token", exact: true }).click();
-  const row = page
-    .locator(".token-row")
-    .filter({ hasText: "refresh failure regression" });
+  await page.getByRole("link", { name: "Administration", exact: true }).click();
+  const username = `refresh_${Date.now()}`;
+  await adminRequest(page, "/api/users", "POST", {
+    username,
+    password: "refresh-failure-password",
+    admin: false,
+  });
+  await page.reload();
+  const row = page.locator(".user-row").filter({ hasText: username });
   await expect(row).toBeVisible();
   await page.route(
-    "**/api/tokens",
+    "**/api/users",
     (route) =>
       route.request().method() === "GET"
         ? route.fulfill({
@@ -505,13 +512,13 @@ test("a failed refresh retains data with a visible retry and then recovers", asy
         : route.continue(),
     { times: 1 },
   );
-  await row.getByRole("button", { name: "Revoke", exact: true }).click();
+  await row.getByRole("button", { name: "Disable", exact: true }).click();
   await expect(
     page.getByText("Couldn’t refresh. Details shown may be out of date."),
   ).toBeVisible();
   await expect(row).toBeVisible();
   await page.getByRole("button", { name: "Try again", exact: true }).click();
-  await expect(row).not.toBeVisible();
+  await expect(row).toContainText("Disabled");
   await expect(
     page.getByText("Couldn’t refresh. Details shown may be out of date."),
   ).not.toBeVisible();

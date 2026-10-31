@@ -34,7 +34,6 @@ async function checkLayout(page, name, { screenshot = true } = {}) {
       ".work-area",
       ".share-options",
       ".recipient-share",
-      ".transfer-feedback",
       "#notice.visible",
     ]
       .flatMap((selector) => [...document.querySelectorAll(selector)])
@@ -296,25 +295,13 @@ test("every page and transient state fits its viewport", async ({
     .getByRole("button", { name: "Download", exact: true })
     .click();
   expect(await (await completed).failure()).toBeNull();
-  await expect(
-    recipient.getByRole("link", { name: "Retry this download", exact: true }),
-  ).toBeVisible();
   await expect(recipient.locator("#notice")).not.toBeVisible();
   await checkLayout(recipient, "download-started");
-  const feedback = await recipient.locator(".transfer-feedback").boundingBox();
-  const panel = await recipient.locator(".recipient-share").boundingBox();
-  expect(feedback.width).toBeLessThan(panel.width);
-  expect(feedback.height).toBeLessThan(160);
   completed = recipient.waitForEvent("download");
   await recipient
     .getByRole("button", { name: "Download", exact: true })
     .click();
   await (await completed).failure();
-  await expect(recipient.locator(".transfer-feedback")).toHaveCount(1);
-  await recipient
-    .getByRole("button", { name: "Dismiss download message" })
-    .click();
-  await expect(recipient.locator(".transfer-feedback")).toHaveCount(0);
   const limitedShare = await seed(page, {
     title: "Single download retry",
     limit: 1,

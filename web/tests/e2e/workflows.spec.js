@@ -47,9 +47,6 @@ test("upload, publish, download ZIP, and revoke", async ({ page, browser }) => {
   const download = await downloading;
   expect(download.suggestedFilename()).toMatch(/\.zip$/);
   expect(await download.failure()).toBeNull();
-  await expect(
-    recipient.getByRole("link", { name: /Retry this download/ }),
-  ).toBeVisible();
   await page
     .getByRole("button", { name: "Revoke and delete", exact: true })
     .click();

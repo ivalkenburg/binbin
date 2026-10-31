@@ -425,41 +425,6 @@ dd {
 .recipient-share form {
   margin-top: 24px;
 }
-#retry-links:empty {
-  display: none;
-}
-#retry-links:not(:empty) {
-  margin-top: 20px;
-}
-.retry-guidance {
-  margin: 0 0 8px;
-}
-.transfer-feedback {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-  max-width: 100%;
-  padding: 8px 0;
-}
-.transfer-feedback + .transfer-feedback {
-  border-top: 1px solid var(--border);
-}
-.transfer-feedback a {
-  flex-shrink: 0;
-  font-size: 12px;
-  white-space: nowrap;
-}
-.feedback-file {
-  display: block;
-  min-width: 0;
-  flex: 1;
-  color: var(--muted-foreground);
-  font-size: 12px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 .file-open-link {
   display: block;
   color: inherit;
@@ -509,13 +474,6 @@ dd {
 }
 .search input {
   padding-left: 32px;
-}
-.inline-icon {
-  display: inline;
-  width: 13px;
-  height: 13px;
-  margin-right: 4px;
-  vertical-align: -2px;
 }
 .back > svg {
   width: 16px;

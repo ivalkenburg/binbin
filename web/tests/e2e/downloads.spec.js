@@ -97,25 +97,18 @@ test("file names open in the browser and downloads reuse the same allowance", as
       await file.waitForURL(/\/d\/[^?]+\?inline=true$/);
       await expect(file.locator("body")).toHaveText("hello");
       expect(await file.evaluate(() => window.opener)).toBeNull();
-      const href = await recipient
-        .getByRole("link", { name: "Retry this download" })
-        .getAttribute("href");
-      expect(new URL(file.url()).pathname).toBe(href);
       const saving = recipient.waitForEvent("download");
       await recipient
         .getByRole("button", { name: "Download", exact: true })
         .click();
-      expect((await saving).suggestedFilename()).toBe("handover.txt");
+      const saved = await saving;
+      expect(saved.suggestedFilename()).toBe("handover.txt");
+      expect(new URL(saved.url()).pathname).toBe(new URL(file.url()).pathname);
       expect(issued).toBe(1);
       const current = await (
         await page.request.get(`/api/shares/${share.id}`)
       ).json();
       expect(current.used).toBe(1);
-      await expect(recipient.locator(".transfer-feedback")).toHaveCount(1);
-      await recipient
-        .getByRole("button", { name: "Dismiss download message" })
-        .click();
-      await expect(recipient.locator("#retry-links")).toBeEmpty();
     } finally {
       await file.close();
     }
@@ -176,7 +169,7 @@ test("blocked tabs explain recovery without issuing a transfer", async ({
   expect(issued).toBe(0);
 });
 
-test("concurrent Download and Retry actions save one attachment", async ({
+test("repeated Download clicks while a saved transfer validates save one attachment", async ({
   page,
 }) => {
   await login(page);
@@ -206,7 +199,7 @@ test("concurrent Download and Retry actions save one attachment", async ({
   page.on("download", () => saves++);
   await button.click();
   await checking;
-  await page.getByRole("link", { name: "Retry this download" }).click();
+  await button.click();
   const saving = page.waitForEvent("download");
   release();
   await saving;

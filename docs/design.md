@@ -353,7 +353,7 @@ Notifications are dismissible fixed alerts at bottom right, bounded to 360px and
 
 Published file lists share one component for owners and recipients: a header strip with the file count, total size and Download all as ZIP (omitted for a single-file recipient share, which shows a primary Download in its row), then one row per file with a type icon, name, size and an icon-only Download button. Clicking anywhere on a row opens the file in a new browser tab; the icon button saves an attachment. Both actions reuse the same transfer identity and allowance. Filenames use a subtle underline, visible focus, and an accessible name explaining the new tab. Preparing a transfer is a button action; recovered transfer URLs remain real links. Draft and unavailable files retain their existing noninteractive names.
 
-Recipient downloads use a compact retry list below the file actions, with one shared Download started message and one dismissible row per resource. Each row contains a bounded filename, a Retry link with the accessible name Retry this download, and the standard dismiss icon button. Use spacing and row separators rather than nested alert cards or repeated explanations. Repeating a download updates that resource’s feedback; retry reuses the transfer identity and allowance. Never claim Download complete.
+Starting a download shows no message on the page: the browser’s own download UI is the feedback, and owner downloads raise no toast. Repeating a download reuses the transfer identity and allowance, and the saved transfer can still be retried from Resume your download after a reload. Never claim Download complete.
 
 ### Editing, deletion, and secrets
 

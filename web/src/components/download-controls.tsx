@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
-import { Download, RotateCcw, X } from "lucide-react";
-import { IconButton } from "./icon-button";
+import { Download } from "lucide-react";
 import { Button } from "./ui/button";
 import { useApp } from "@/app/context";
 import { useTask } from "@/hooks/use-task";
@@ -12,14 +11,12 @@ export function FileOpenButton({
   resource,
   management = false,
   password,
-  onStarted,
   children,
 }: {
   share: Share | PublicShare;
   resource: string;
   management?: boolean;
   password?: string | null;
-  onStarted?: (resource: string, href: string) => void;
   children: string;
 }) {
   const { csrf } = useApp();
@@ -35,7 +32,7 @@ export function FileOpenButton({
       disabled={pending}
       onClick={() => {
         void run(async (signal) => {
-          const href = await openFile({
+          await openFile({
             shareId: share.id,
             resource,
             management,
@@ -43,7 +40,6 @@ export function FileOpenButton({
             password,
             signal,
           });
-          onStarted?.(resource, href);
         });
       }}
     >
@@ -57,7 +53,6 @@ export function DownloadButton({
   resource,
   management = false,
   password,
-  onStarted,
   children,
   primary = false,
   iconOnly = false,
@@ -68,7 +63,6 @@ export function DownloadButton({
   resource: string;
   management?: boolean;
   password?: string | null;
-  onStarted?: (resource: string, href: string) => void;
   children?: ReactNode;
   primary?: boolean;
   iconOnly?: boolean;
@@ -90,7 +84,7 @@ export function DownloadButton({
       data-resource={resource}
       onClick={() =>
         void run(async (signal) => {
-          const href = await download({
+          await download({
             shareId: share.id,
             resource,
             management,
@@ -98,77 +92,12 @@ export function DownloadButton({
             password,
             signal,
           });
-          if (management)
-            notify("Download started. Your allowance is unchanged.");
-          else {
-            notify("");
-            onStarted?.(resource, href);
-          }
+          if (!management) notify("");
         })
       }
     >
       <Download aria-hidden="true" />
       {iconOnly ? null : children || "Download"}
     </Button>
-  );
-}
-export function DownloadFeedback({
-  share,
-  links,
-  dismiss,
-  retry,
-}: {
-  share: PublicShare;
-  links: Record<string, string>;
-  dismiss: (resource: string) => void;
-  retry: (resource: string) => void;
-}) {
-  return (
-    <div id="retry-links" aria-live="polite">
-      {Object.keys(links).length > 0 && (
-        <p className="fine muted retry-guidance">
-          Download started. Retry an interrupted transfer below.
-        </p>
-      )}
-      {Object.entries(links).map(([resource, href]) => {
-        const name =
-          resource === "zip"
-            ? "All files (ZIP)"
-            : share.files.find((f) => f.id === resource)?.name;
-        return (
-          <div
-            className="transfer-feedback"
-            data-resource={resource}
-            role="status"
-            key={resource}
-          >
-            <span className="feedback-file" title={name}>
-              {name}
-            </span>
-            <a
-              href={href}
-              data-action="public-download"
-              data-resource={resource}
-              onClick={(e) => {
-                e.preventDefault();
-                retry(resource);
-              }}
-              aria-label="Retry this download"
-              title={`Retry ${name}`}
-            >
-              <RotateCcw aria-hidden="true" className="inline-icon" />
-              Retry
-            </a>
-            <IconButton
-              size="icon-xs"
-              label="Dismiss download message"
-              onClick={() => dismiss(resource)}
-            >
-              <X aria-hidden="true" />
-            </IconButton>
-          </div>
-        );
-      })}
-    </div>
   );
 }

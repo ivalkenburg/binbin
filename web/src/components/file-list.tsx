@@ -8,17 +8,15 @@ export function FileList({
   management = false,
   password,
   downloadable = true,
-  onStarted,
 }: {
   share: Share | PublicShare;
   management?: boolean;
   password?: string | null;
   downloadable?: boolean;
-  onStarted?: (resource: string, href: string) => void;
 }) {
   const total = share.files.reduce((n, file) => n + file.size, 0);
   const single = share.files.length === 1 && !management;
-  const transfer = { share, management, password, onStarted };
+  const transfer = { share, management, password };
   return (
     <div className="file-list">
       {!single && (

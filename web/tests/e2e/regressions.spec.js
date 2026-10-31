@@ -158,9 +158,6 @@ test("double clicks share issuance and unavailable storage still permits retries
   const downloading = page.waitForEvent("download");
   waiting.release();
   await downloading;
-  await expect(
-    page.getByRole("link", { name: "Retry this download" }),
-  ).toBeVisible();
   expect(issued).toBe(1);
   expect(bodies).toBe(1);
   const retrying = page.waitForEvent("download");
@@ -183,10 +180,7 @@ test("password changes replace rejected cached capabilities", async ({
   await recipient.getByRole("button", { name: "Open share" }).click();
   let downloading = recipient.waitForEvent("download");
   await recipient.locator('[data-action="public-download"]').first().click();
-  await downloading;
-  const original = await recipient
-    .getByRole("link", { name: "Retry this download" })
-    .getAttribute("href");
+  const original = new URL((await downloading).url()).pathname;
   await page.evaluate(async (share) => {
     const me = await (await fetch("/api/me")).json();
     const response = await fetch(`/api/shares/${share.id}`, {
@@ -209,10 +203,7 @@ test("password changes replace rejected cached capabilities", async ({
   await recipient.getByRole("button", { name: "Open share" }).click();
   downloading = recipient.waitForEvent("download");
   await recipient.locator('[data-action="public-download"]').first().click();
-  await downloading;
-  await expect(
-    recipient.getByRole("link", { name: "Retry this download" }),
-  ).not.toHaveAttribute("href", original);
+  expect(new URL((await downloading).url()).pathname).not.toBe(original);
 });
 
 test("management downloads get a new capability after logout and login", async ({
@@ -536,22 +527,16 @@ test("cached server-valid retries survive local issuance expiry with one HEAD", 
   await page.goto(share.url);
   let completed = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download", exact: true }).click();
-  await completed;
-  const href = await page
-    .getByRole("link", { name: "Retry this download" })
-    .getAttribute("href");
+  const href = new URL((await completed).url()).pathname;
   await page.evaluate(() => {
     const now = Date.now();
     Date.now = () => now + 25 * 60 * 60 * 1000;
   });
   completed = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download", exact: true }).click();
-  await completed;
+  expect(new URL((await completed).url()).pathname).toBe(href);
   expect(issued).toBe(1);
   expect(heads).toBe(2);
-  await expect(
-    page.getByRole("link", { name: "Retry this download" }),
-  ).toHaveAttribute("href", href);
   const current = await (
     await page.request.get(`/api/shares/${share.id}`)
   ).json();
@@ -616,10 +601,7 @@ test("an exhausted public share can recover its charged retry after reload", asy
   await page.goto(share.url);
   let completed = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download", exact: true }).click();
-  await completed;
-  const href = await page
-    .getByRole("link", { name: "Retry this download" })
-    .getAttribute("href");
+  const href = new URL((await completed).url()).pathname;
   await page.reload();
   await expect(
     page.getByRole("heading", { name: "Resume your download" }),

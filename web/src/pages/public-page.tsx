@@ -9,13 +9,11 @@ import { useTask } from "@/hooks/use-task";
 import { ApiError } from "@/lib/api";
 import { bytes, date, fileCount } from "@/lib/format";
 import {
-  download,
   recoverPublicDownloads,
   retryRecoveredDownload,
   type RecoveredDownload,
 } from "@/transfers/download";
 import { Field } from "@/components/forms";
-import { DownloadFeedback } from "@/components/download-controls";
 import { FileList } from "@/components/file-list";
 import { Button } from "@/components/ui/button";
 import type { PublicShare } from "@/types/api";
@@ -29,7 +27,6 @@ export function PublicPage() {
   } = useRemote<PublicShare>(`/api/public/${encodeURIComponent(shareId)}`, {
     password,
   });
-  const [links, setLinks] = useState<Record<string, string>>({});
   const { notify } = useApp();
   const { run } = useTask();
   const [recovered, setRecovered] = useState<RecoveredDownload[]>([]);
@@ -186,8 +183,6 @@ export function PublicPage() {
     );
   }
   if (!share) return <Loading />;
-  const started = (resource: string, href: string) =>
-    setLinks((previous) => ({ ...previous, [resource]: href }));
   return (
     <Panel className="recipient-share">
       <div className="login-mark">
@@ -198,31 +193,7 @@ export function PublicPage() {
         {fileCount(share.files.length)} ·{" "}
         {bytes(share.files.reduce((n, f) => n + f.size, 0))}
       </p>
-      <FileList share={share} password={password} onStarted={started} />
-      <DownloadFeedback
-        share={share}
-        links={links}
-        dismiss={(resource) =>
-          setLinks((previous) => {
-            const next = { ...previous };
-            delete next[resource];
-            return next;
-          })
-        }
-        retry={(resource) =>
-          void run(async (signal) => {
-            const href = await download({
-              shareId: share.id,
-              resource,
-              management: false,
-              scope: "public",
-              password,
-              signal,
-            });
-            started(resource, href);
-          })
-        }
-      />
+      <FileList share={share} password={password} />
       <div className="recipient-limits">
         <span>
           {share.expires

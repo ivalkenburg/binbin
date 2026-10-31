@@ -1,6 +1,6 @@
 # Development
 
-Use Rust 1.88 or newer and Node 22.13 or a current supported Node LTS release. Linux workspace builds require `libdbus-1-dev` and `pkg-config` for the CLI's credential-store backend. A server-only build does not need them.
+Use Rust 1.88 or newer and Node 22.13 or a current supported Node LTS release.
 
 ```sh
 npm --prefix web ci
@@ -44,4 +44,4 @@ Keep business rules in application services and transport policy in the server. 
 
 Released SQL migration files are immutable. Add the next numbered migration for schema changes; the startup migration runner applies only newer versions in a transaction and refuses databases from a newer application. Include upgrade coverage that preserves existing accounts, shares, upload offsets, and file contents.
 
-Never add credentials or runtime data to the repository. Use the application's hidden prompts and documented token-input options for local setup and headless clients.
+Never add credentials or runtime data to the repository. Use the application's hidden prompt to set the initial administrator password.

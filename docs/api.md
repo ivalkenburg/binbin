@@ -1,15 +1,12 @@
 # HTTP API
 
-All metadata responses are JSON. Errors have `{ "error": "message" }` and an appropriate HTTP status. Use `Authorization: Bearer TOKEN` for automation. Browser sessions use an HttpOnly, SameSite=Strict cookie; mutations also require `X-Binbin-CSRF` returned by login or `/api/me`. Requests with an Origin must match the configured public origin. There is no cross-origin API access.
+All metadata responses are JSON. Errors have `{ "error": "message" }` and an appropriate HTTP status. Browser sessions use an HttpOnly, SameSite=Strict cookie; mutations also require `X-Binbin-CSRF` returned by login or `/api/me`. Requests with an Origin must match the configured public origin. There is no cross-origin API access.
 
 ## Authentication and administration
 
 - `POST /api/login`: `{ "username": "…", "password": "…" }`; sets cookie, returns user and CSRF value.
 - `POST /api/logout`: invalidates current credential and clears the cookie.
 - `GET /api/me`: current user and CSRF value.
-- `GET /api/tokens`: current account's named tokens; never returns their secrets.
-- `POST /api/tokens`: `{ "name": "Laptop" }`; returns a raw `token` once, its hashed ID, and expiry.
-- `DELETE /api/tokens/{id}`: revoke your own API token.
 - `GET /api/settings`: settings, used reservation bytes, and chunk size.
 - `PUT /api/settings`: administrator only. Complete object: `file_limit`, `share_limit`, `storage_limit` (bytes), `file_count`, `default_days`, `max_days`, `max_downloads`. Nullable lifetime/count fields mean unlimited.
 - `GET /api/users`: administrator only; safe user records.
@@ -32,9 +29,9 @@ All metadata responses are JSON. Errors have `{ "error": "message" }` and an app
 }
 ```
 
-Specify `days` and `limit` explicitly; null means unlimited. The browser and CLI read configured defaults first. Filenames must be unique basenames, at most 240 UTF-8 bytes; paths and control characters are rejected.
+Specify `days` and `limit` explicitly; null means unlimited. The browser reads configured defaults first. Filenames must be unique basenames, at most 240 UTF-8 bytes; paths and control characters are rejected.
 
-`PATCH /api/files/{file_id}?offset=0` uploads raw bytes, at most 8 MiB. The result has the committed offset. A mismatched offset returns 409: inspect the draft before retrying. `GET /api/files/{file_id}/proofs` returns SHA-256 digests of committed 8 MiB segments (last segment can be shorter). An empty PATCH with `X-Binbin-Prefix-SHA256` verifies the entire committed prefix for CLI resumption.
+`PATCH /api/files/{file_id}?offset=0` uploads raw bytes, at most 8 MiB. The result has the committed offset. A mismatched offset returns 409: inspect the draft before retrying. `GET /api/files/{file_id}/proofs` returns SHA-256 digests of committed 8 MiB segments (last segment can be shorter). An empty PATCH with `X-Binbin-Prefix-SHA256` verifies the entire committed prefix for resumption.
 
 `PATCH /api/shares/{id}/files` atomically edits an unexpired private draft. Omit unused arrays:
 

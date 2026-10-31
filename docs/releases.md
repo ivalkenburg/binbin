@@ -1,6 +1,6 @@
 # GitHub publishing and releases
 
-The release workflow (`.github/workflows/release.yml`) runs only when a GitHub Release is published. It builds and publishes the server image to `ghcr.io/<owner>/<repository>` (lowercase repository path), attaches CLI binaries to the Release, and updates the Homebrew formula. Nothing runs on pushes or pull requests. Image publishing uses `GITHUB_TOKEN` with job-scoped `packages: write`; see [GitHub's package publishing workflow](https://docs.github.com/en/packages/managing-github-packages-using-github-actions-workflows/publishing-and-installing-a-package-with-github-actions).
+The release workflow (`.github/workflows/release.yml`) runs only when a GitHub Release is published. It builds and publishes the server image to `ghcr.io/<owner>/<repository>` (lowercase repository path). Nothing runs on pushes or pull requests. Image publishing uses `GITHUB_TOKEN` with job-scoped `packages: write`; see [GitHub's package publishing workflow](https://docs.github.com/en/packages/managing-github-packages-using-github-actions-workflows/publishing-and-installing-a-package-with-github-actions).
 
 ## First push
 
@@ -15,16 +15,8 @@ git push -u origin main
 
 1. `verify` checks that the release tag is `v` plus `workspace.package.version` in `Cargo.toml`, then runs `cargo test --locked --workspace --all-targets`.
 2. `image` builds the image, smoke-tests it, then publishes Linux AMD64 and ARM64 images with OCI labels, provenance, and an SBOM. Its summary includes the digest and tags.
-3. `cli` builds `binbin` for macOS (arm64, x86_64) and Linux (x86_64, arm64) and uploads `binbin-X.Y.Z-<target>.tar.gz` plus a `.sha256` file to the Release. Linux builds run on Ubuntu 22.04 runners to keep the glibc requirement low and need `libdbus-1` at runtime.
-4. `homebrew` runs after `image` and `cli` succeed. It writes `Formula/binbin.rb` in `<owner>/homebrew-tap` and pushes it. Pre-releases skip this job.
 
-Any failure stops later jobs. Re-running the workflow is safe: asset uploads overwrite, and the tap job skips the commit when the formula is unchanged.
-
-### One-time setup
-
-- Create the public repository `<owner>/homebrew-tap`, with at least one commit (a README is enough).
-- Create a fine-grained personal access token limited to that repository with **Contents: read and write**, and store it as the Actions secret `HOMEBREW_TAP_TOKEN` in this repository.
-- Install with `brew install <owner>/tap/binbin`.
+Any failure stops later jobs.
 
 New GHCR packages are private by default. After the first successful publish, open your account or organization's **Packages → package → Package settings** and change visibility to public if users should pull without signing in. The workflow associates the package with its source repository. For an existing package, grant this repository Actions access in the package settings if needed. See [GitHub's container registry documentation](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry).
 

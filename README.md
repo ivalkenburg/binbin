@@ -1,6 +1,6 @@
 # Binbin
 
-Private file sharing in Rust. Upload through the browser or CLI, explicitly publish a batch, and send an unguessable link. Shares can require a password and expire by deadline, download allowance, or either condition.
+Private file sharing in Rust. Upload through the browser, explicitly publish a batch, and send an unguessable link. Shares can require a password and expire by deadline, download allowance, or either condition.
 
 The server stores metadata in SQLite and streams file contents from local disk. Multi-file shares include a prepared, uncompressed ZIP for reliable ranged downloads. One container and one persistent volume run the application; no separate database or Node runtime is needed in production.
 
@@ -8,7 +8,7 @@ See [architecture and repository layout](docs/architecture.md), [development ins
 
 ## Run with Docker
 
-Publishing a GitHub Release builds multi-platform images for `ghcr.io/<owner>/<repository>` (tagged with the version and `latest`), attaches CLI binaries, and updates the Homebrew tap. See [GitHub setup, releases, and running a published image](docs/releases.md). For a local build:
+Publishing a GitHub Release builds multi-platform images for `ghcr.io/<owner>/<repository>` (tagged with the version and `latest`). See [GitHub setup, releases, and running a published image](docs/releases.md). For a local build:
 
 ```sh
 docker compose build
@@ -32,29 +32,6 @@ The container runs as UID/GID **10001**. A named volume is configured automatica
 Each public file or ZIP transfer consumes one allowance **when its body starts**, rather than when the link is viewed. Its retry credential permits resumption of that same resource for 24 hours from first transfer, without another charge. A count-exhausted share retains content for outstanding transfers. Time expiry, password changes, and revocation block further requests; an already-streaming response may finish.
 
 Downloads through authenticated management commands bypass allowances. Public-link downloads consume them even for the owner. Expired/revoked shares cannot be restored. File contents are reclaimed by the minute-based cleanup job; minimal history remains for 30 days. See [the lifecycle specification](docs/specification.md).
-
-## CLI
-
-Build with Rust 1.88 or later (the Docker build uses Rust 1.97):
-
-```sh
-cargo install --path crates/binbin-cli --bin binbin
-binbin --server https://files.example.com login
-binbin upload report.pdf notes.txt --title "Project handover" --days 7 --downloads 5
-binbin list
-binbin inspect SHARE_ID
-binbin download SHARE_ID --output handover.zip
-binbin fetch https://files.example.com/s/SHARE_ID --output handover.zip
-binbin revoke SHARE_ID
-```
-
-Create a named API token in browser Settings and paste it into `login`'s hidden prompt. The token is saved in the OS credential store. On Linux, building the default CLI requires D-Bus development files (`libdbus-1-dev` and `pkg-config` on Debian/Ubuntu), and persistent credentials require an unlocked Secret Service. macOS uses Keychain; Windows uses Credential Manager.
-
-For headless use, provide `--token-file /run/secrets/binbin`, `--token-stdin`, or `--prompt-token`. These modes never save another token copy. No silent plaintext fallback exists. Only the server URL is saved in the configuration file. Logging out deletes the local credential; revoke the server token separately in Settings. API tokens expire after one year.
-
-Use `--no-expiry` for unlimited lifetime, `--password` to prompt for a share password, and `--json` for machine-readable output. The CLI reports a private draft ID before uploading; repeat the upload with `--resume DRAFT_ID` and the complete current file set to continue. Both clients compare uploaded prefixes before resuming.
-
-Repeat a failed download command with the same output path to resume. A persistent `.binbin-transfer.lock` file prevents simultaneous downloads from writing the same output; leave it in place while a download may be running. A private `.binbin-transfer.json` sidecar preserves its credential and idempotency key; remove it only when abandoning the transfer. Successful downloads verify SHA-256 and remove the sidecar. If verification fails, remove only the corrupt output and keep its sidecar to retry with the same credential. Existing output files without a matching sidecar are never overwritten. `fetch --password` prompts for a protected share's password.
 
 ## Defaults and limits
 
@@ -84,11 +61,11 @@ bash scripts/docker-smoke.sh binbin:local
 
 The React browser client uses shadcn/ui Base UI components themed with the supplied light/dark theme. Run `npm --prefix web run dev` for hot reload against a local server on port 8080. Production assets are built by Vite and embedded in the Rust binary.
 
-The browser tests start an isolated fixture on port 8086, with temporary data and test-only credentials. Rust tests cover authentication, CSRF, permissions, publication, checksums, ZIP integrity, deadlines, concurrent allowances/reservations, cleanup, HTTP ranges, token lifecycle, and real CLI workflows. Browser tests check every page and transient state at desktop, tablet, mobile, and 320px widths in both light and dark modes, including download feedback, theme persistence, long filenames, and document/container overflow. Focused browser regressions cover delayed navigation, upload cancellation, repeated download clicks, denied storage, password changes, and keyboard focus. The release workflow runs the Rust tests and a container smoke test before publishing.
+The browser tests start an isolated fixture on port 8086, with temporary data and test-only credentials. Rust tests cover authentication, CSRF, permissions, publication, checksums, ZIP integrity, deadlines, concurrent allowances/reservations, cleanup, HTTP ranges, session lifecycle. Browser tests check every page and transient state at desktop, tablet, mobile, and 320px widths in both light and dark modes, including download feedback, theme persistence, long filenames, and document/container overflow. Focused browser regressions cover delayed navigation, upload cancellation, repeated download clicks, denied storage, password changes, and keyboard focus. The release workflow runs the Rust tests and a container smoke test before publishing.
 
 Configure `BINBIN_DATA` (default `data`), `BINBIN_BIND` (default `0.0.0.0:8080`), `BINBIN_PUBLIC_URL` (default `http://localhost:8080`), and `RUST_LOG`. `/healthz` is the health endpoint. [HTTP API documentation](docs/api.md) describes the client protocol.
 
-The server writes timestamped event logs to stdout. Events include sign-in successes and failures, sign-out, account and API token changes, share creation/publication/updates/deletion, completed file uploads, download transfer preparation and starts, and instance settings changes. Logs include operation IDs and transfer sizes where applicable; passwords, session cookies, API token secrets, and download capability URLs are excluded. Set `RUST_LOG` to control verbosity (default `binbin=info`).
+The server writes timestamped event logs to stdout. Events include sign-in successes and failures, sign-out, account changes, share creation/publication/updates/deletion, completed file uploads, download transfer preparation and starts, and instance settings changes. Logs include operation IDs and transfer sizes where applicable; passwords, session cookies, and download capability URLs are excluded. Set `RUST_LOG` to control verbosity (default `binbin=info`).
 
 ## Back up and restore
 

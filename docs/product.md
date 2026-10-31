@@ -8,7 +8,7 @@ web
 
 ## Stack
 
-Rust server and CLI, SQLite, persistent local files, one Docker container. The web client uses React, TypeScript, Vite, Tailwind CSS, and shadcn/ui Base UI (base-nova) with @base-ui/react. Browser package manifests, tooling, and tests live in web/.
+Rust server, SQLite, persistent local files, one Docker container. The web client uses React, TypeScript, Vite, Tailwind CSS, and shadcn/ui Base UI (base-nova) with @base-ui/react. Browser package manifests, tooling, and tests live in web/.
 
 ## Users
 
@@ -16,11 +16,11 @@ Private, administrator-created uploader accounts. Recipients download without ac
 
 ## Product Purpose
 
-Upload a fixed batch, publish a link, and control its lifetime by deadline and download allowance. Browser and CLI support interrupted transfers.
+Upload a fixed batch, publish a link, and control its lifetime by deadline and download allowance. The browser supports interrupted transfers.
 
 ## Operating Context
 
-Self-hosted behind an HTTPS reverse proxy. Linux, macOS, and Windows CLI. Single application instance; no public registration.
+Self-hosted behind an HTTPS reverse proxy. Single application instance; no public registration.
 
 ## Capabilities and Constraints
 

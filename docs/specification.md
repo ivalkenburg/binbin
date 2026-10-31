@@ -18,7 +18,7 @@ Opening a share page consumes no allowance. Password-protected pages reveal no m
 
 A client creates a resource-specific transfer using a random idempotency key. The same key, resource, share version, and access scope return the same transfer. Management access scope includes its independently revocable credential. Expired keys retain tombstones while their share version can issue transfers, so expired URLs cannot be revived. New public capabilities use a separate namespace from legacy records; existing valid legacy capabilities retain their retry behavior. Issuance is free; the first valid GET body request atomically charges one allowance, even if the connection subsequently fails. HEAD, invalid ranges, and conditional responses do not charge. Individual files and ZIPs each consume one allowance. Authenticated management transfers bypass counts.
 
-A charged transfer can retry for 24 hours from first body request. Strong ETags and HTTP byte ranges preserve file and ZIP offsets. If-Range mismatches return a full response, and the CLI restarts rather than appending. A transfer covers exactly one file or ZIP. Completion means server delivery or client digest verification, never proof that a person retained a file.
+A charged transfer can retry for 24 hours from first body request. Strong ETags and HTTP byte ranges preserve file and ZIP offsets. If-Range mismatches return a full response, and clients restart rather than append. A transfer covers exactly one file or ZIP. Completion means server delivery or client digest verification, never proof that a person retained a file.
 
 ## Expiration and deletion
 
@@ -30,4 +30,4 @@ Cleanup runs every minute and at startup. It removes abandoned drafts and expire
 
 ## Deployment
 
-One Rust server process, SQLite, and local persistent storage. The Rust CLI targets Linux/macOS/Windows. Docker runs unprivileged behind a separately managed HTTPS proxy. Defaults are 5 GiB/file, 20 GiB/share, 100 files/share, and 100 GiB total reserved capacity, all configurable. Transfers stream from disk and upload requests are bounded to 8 MiB. File contents are readable by the server operator.
+One Rust server process, SQLite, and local persistent storage. Docker runs unprivileged behind a separately managed HTTPS proxy. Defaults are 5 GiB/file, 20 GiB/share, 100 files/share, and 100 GiB total reserved capacity, all configurable. Transfers stream from disk and upload requests are bounded to 8 MiB. File contents are readable by the server operator.

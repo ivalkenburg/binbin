@@ -3,67 +3,67 @@ name: Binbin
 description: Compact file-sharing tasks using shadcn/ui Base UI and the approved OKLCH theme.
 colors:
   background: "oklch(1 0 0)"
-  foreground: "oklch(0.148 0.004 228.8)"
+  foreground: "oklch(0.145 0 0)"
   card: "oklch(1 0 0)"
-  card-foreground: "oklch(0.148 0.004 228.8)"
+  card-foreground: "oklch(0.145 0 0)"
   popover: "oklch(1 0 0)"
-  popover-foreground: "oklch(0.148 0.004 228.8)"
+  popover-foreground: "oklch(0.145 0 0)"
   primary: "oklch(0.508 0.118 165.612)"
   primary-foreground: "oklch(0.979 0.021 166.113)"
-  secondary: "oklch(0.967 0.001 286.375)"
-  secondary-foreground: "oklch(0.21 0.006 285.885)"
-  muted: "oklch(0.963 0.002 197.1)"
-  muted-foreground: "oklch(0.56 0.021 213.5)"
-  accent: "oklch(0.963 0.002 197.1)"
-  accent-foreground: "oklch(0.218 0.008 223.9)"
+  secondary: "oklch(0.97 0 0)"
+  secondary-foreground: "oklch(0.205 0 0)"
+  muted: "oklch(0.97 0 0)"
+  muted-foreground: "oklch(0.556 0 0)"
+  accent: "oklch(0.97 0 0)"
+  accent-foreground: "oklch(0.205 0 0)"
   destructive: "oklch(0.577 0.245 27.325)"
-  border: "oklch(0.925 0.005 214.3)"
-  input: "oklch(0.925 0.005 214.3)"
-  ring: "oklch(0.723 0.014 214.4)"
-  chart-1: "oklch(0.872 0.007 219.6)"
-  chart-2: "oklch(0.56 0.021 213.5)"
-  chart-3: "oklch(0.45 0.017 213.2)"
-  chart-4: "oklch(0.378 0.015 216)"
-  chart-5: "oklch(0.275 0.011 216.9)"
-  sidebar: "oklch(0.987 0.002 197.1)"
-  sidebar-foreground: "oklch(0.148 0.004 228.8)"
+  border: "oklch(0.922 0 0)"
+  input: "oklch(0.922 0 0)"
+  ring: "oklch(0.708 0 0)"
+  chart-1: "oklch(0.87 0 0)"
+  chart-2: "oklch(0.556 0 0)"
+  chart-3: "oklch(0.439 0 0)"
+  chart-4: "oklch(0.371 0 0)"
+  chart-5: "oklch(0.269 0 0)"
+  sidebar: "oklch(0.985 0 0)"
+  sidebar-foreground: "oklch(0.145 0 0)"
   sidebar-primary: "oklch(0.596 0.145 163.225)"
   sidebar-primary-foreground: "oklch(0.979 0.021 166.113)"
-  sidebar-accent: "oklch(0.963 0.002 197.1)"
-  sidebar-accent-foreground: "oklch(0.218 0.008 223.9)"
-  sidebar-border: "oklch(0.925 0.005 214.3)"
-  sidebar-ring: "oklch(0.723 0.014 214.4)"
-  dark-background: "oklch(0.148 0.004 228.8)"
-  dark-foreground: "oklch(0.987 0.002 197.1)"
-  dark-card: "oklch(0.218 0.008 223.9)"
-  dark-card-foreground: "oklch(0.987 0.002 197.1)"
-  dark-popover: "oklch(0.218 0.008 223.9)"
-  dark-popover-foreground: "oklch(0.987 0.002 197.1)"
+  sidebar-accent: "oklch(0.97 0 0)"
+  sidebar-accent-foreground: "oklch(0.205 0 0)"
+  sidebar-border: "oklch(0.922 0 0)"
+  sidebar-ring: "oklch(0.708 0 0)"
+  dark-background: "oklch(0.145 0 0)"
+  dark-foreground: "oklch(0.985 0 0)"
+  dark-card: "oklch(0.205 0 0)"
+  dark-card-foreground: "oklch(0.985 0 0)"
+  dark-popover: "oklch(0.205 0 0)"
+  dark-popover-foreground: "oklch(0.985 0 0)"
   dark-primary: "oklch(0.432 0.095 166.913)"
   dark-primary-foreground: "oklch(0.979 0.021 166.113)"
-  dark-secondary: "oklch(0.274 0.006 286.033)"
+  dark-secondary: "oklch(0.269 0 0)"
   dark-secondary-foreground: "oklch(0.985 0 0)"
-  dark-muted: "oklch(0.275 0.011 216.9)"
-  dark-muted-foreground: "oklch(0.723 0.014 214.4)"
-  dark-accent: "oklch(0.275 0.011 216.9)"
-  dark-accent-foreground: "oklch(0.987 0.002 197.1)"
+  dark-muted: "oklch(0.269 0 0)"
+  dark-muted-foreground: "oklch(0.708 0 0)"
+  dark-accent: "oklch(0.269 0 0)"
+  dark-accent-foreground: "oklch(0.985 0 0)"
   dark-destructive: "oklch(0.704 0.191 22.216)"
   dark-border: "oklch(1 0 0 / 10%)"
   dark-input: "oklch(1 0 0 / 15%)"
-  dark-ring: "oklch(0.56 0.021 213.5)"
-  dark-chart-1: "oklch(0.872 0.007 219.6)"
-  dark-chart-2: "oklch(0.56 0.021 213.5)"
-  dark-chart-3: "oklch(0.45 0.017 213.2)"
-  dark-chart-4: "oklch(0.378 0.015 216)"
-  dark-chart-5: "oklch(0.275 0.011 216.9)"
-  dark-sidebar: "oklch(0.218 0.008 223.9)"
-  dark-sidebar-foreground: "oklch(0.987 0.002 197.1)"
+  dark-ring: "oklch(0.556 0 0)"
+  dark-chart-1: "oklch(0.87 0 0)"
+  dark-chart-2: "oklch(0.556 0 0)"
+  dark-chart-3: "oklch(0.439 0 0)"
+  dark-chart-4: "oklch(0.371 0 0)"
+  dark-chart-5: "oklch(0.269 0 0)"
+  dark-sidebar: "oklch(0.205 0 0)"
+  dark-sidebar-foreground: "oklch(0.985 0 0)"
   dark-sidebar-primary: "oklch(0.696 0.17 162.48)"
   dark-sidebar-primary-foreground: "oklch(0.262 0.051 172.552)"
-  dark-sidebar-accent: "oklch(0.275 0.011 216.9)"
-  dark-sidebar-accent-foreground: "oklch(0.987 0.002 197.1)"
+  dark-sidebar-accent: "oklch(0.269 0 0)"
+  dark-sidebar-accent-foreground: "oklch(0.985 0 0)"
   dark-sidebar-border: "oklch(1 0 0 / 10%)"
-  dark-sidebar-ring: "oklch(0.56 0.021 213.5)"
+  dark-sidebar-ring: "oklch(0.556 0 0)"
 typography:
   headline:
     fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
@@ -214,7 +214,7 @@ components:
 
 **Creative North Star: "The compact task workspace"**
 
-The compact task workspace gives files, settings, progress, and the next action a familiar shadcn/ui Base UI structure. Cool neutral surfaces carry the content; green marks primary actions and available shares, while destructive treatments identify errors and irreversible actions. Native system typography keeps working screens compact.
+The compact task workspace gives files, settings, progress, and the next action a familiar shadcn/ui Base UI structure. Neutral surfaces in the shadcn Nova palette carry the content; green marks primary actions and available shares, while destructive treatments identify errors and irreversible actions. Native system typography keeps working screens compact.
 
 This records the approved replacement of the former strictly neutral interface. The implemented world is the official base-nova component family, composed for Binbin’s upload, management, and recipient tasks. Application styles arrange those components; their variant APIs own primitive appearance and interaction states.
 
@@ -240,7 +240,7 @@ Cool white and dark surfaces support a green action accent and semantic destruct
 ### Secondary
 
 - **Soft neutral selection** (`secondary` / `dark-secondary`): current navigation and non-active status badges. This is a neutral supporting role, not another chromatic accent.
-- **Muted cool surface** (`muted`, `accent`, and their dark counterparts): row hover, drop zones, token reveal, subtle code backgrounds, and supporting surfaces. Muted foreground carries metadata and help.
+- **Muted neutral surface** (`muted`, `accent`, and their dark counterparts): row hover, drop zones, subtle code backgrounds, and supporting surfaces. Muted foreground carries metadata and help.
 
 ### Neutral
 
@@ -268,11 +268,11 @@ Input text is 16px below the Tailwind medium breakpoint (48rem), then 14px. At a
 
 ## Layout
 
-The header, main workspace, and footer share one centered maximum width (1120px), with matching horizontal padding: 28px on desktop, 20px below 760px, and 16px below 480px. The header has a 64px minimum height and aligns mark, navigation, and account controls in three shrinking columns. Main desktop padding is 40px 28px 64px. The footer shows Binbin and the workspace package version from Cargo.toml.
+The header, main workspace, and footer share one centered maximum width (1080px), with matching horizontal padding: 24px on desktop, 20px below 760px, and 16px below 480px. The header is sticky with a 56px minimum height and a translucent blurred background, and aligns mark, navigation, and account controls in three shrinking columns. Main desktop padding is 32px 24px 64px. The footer shows Binbin and the workspace package version from Cargo.toml.
 
-Upload, share details, and administration use a flexible working panel plus a settings track (340px), with a 24px gap. A settings-only panel can narrow to 740px. Sign-in centers a card capped at 400px; recipient content uses a centered card capped at 544px inside the shared workspace. These task-specific patterns belong to their corresponding screens rather than every future page.
+Upload, share details, and administration use a flexible working panel plus a settings track (340px), with a 24px gap. Sign-in centers a card capped at 400px; recipient content uses a centered card capped at 544px inside the shared workspace. These task-specific patterns belong to their corresponding screens rather than every future page.
 
-Spacing follows the frontmatter scale: 12px between related fields/actions, 16px row padding, 20px between fields, 24px panel gaps and working-card padding, and a 28px heading-to-content interval. The primitive card default is 16px padding; its compact size is 12px. Application working, settings, login, and recipient cards use 24px, reducing to 16px on narrow screens.
+Spacing follows the frontmatter scale: 12px between related fields/actions, 16px row padding, 20px between fields, 24px panel gaps and working-card padding, and a 24px heading-to-content interval. The primitive card default is 16px padding; its compact size is 12px. Application working and settings cards use 20px, login and recipient cards 24px, reducing to 16px on narrow screens.
 
 - **At 1000px and below:** hide the account name and deadline column, reduce paired-layout settings tracks to 310px and gaps to 20px, and stack paired fields within those layouts.
 - **At 900px and below:** navigation becomes a second header row.
@@ -359,7 +359,7 @@ Recipient downloads use a compact retry list below the file actions, with one sh
 
 The inline administrator password-reset form names the target account in its heading and clears the password when a different account is selected. Disable target changes and submission while a mutation is pending. Keep the session-invalidation consequence explicit in the submit label, and separate the form from account rows with spacing as described above.
 
-Share editing replaces the read-only settings summary and includes Cancel. The deletion flow displays a destructive warning (“This permanently removes access and files. There is no undo.”), Confirm deletion, and Keep share in the settings panel. Keep the whole warning visible and distinct from floating feedback; do not replace this with a routine toast. API token creation reveals its secret once, in a labeled read-only field with Copy token and I’ve saved it actions; the latter hides the current reveal.
+Share editing replaces the read-only settings summary and includes Cancel. The deletion flow opens a confirmation dialog titled with the share name, a destructive description (“This permanently removes access and files. There is no undo.”), Keep share, and Confirm deletion. Keep the whole warning visible and distinct from floating feedback; do not replace this with a routine toast. Active shares lead their settings panel with the share link and a primary Copy link action. Drafts show a sticky publish bar with the upload count and Publish share, and an outlined time-left badge beside the status.
 
 ## Do's and Don'ts
 
@@ -370,6 +370,7 @@ Share editing replaces the read-only settings summary and includes Cancel. The d
 - Do give fields associated labels, icon-only controls accessible names, and keyboard users visible focus.
 - Do pair status color with text, retain real upload progress and pause, and keep retry feedback tied to its resource.
 - Do keep temporary request failures retryable and permanent unavailability explained; keep deletion warnings visible with a cancel action.
+- Do keep screens quiet: omit helper text that restates behavior the interface already shows, such as storage totals, allowance footnotes, and expiry reminders on drafts.
 - Do fit content at 1440, 768, 390, and 320px in both themes and respect reduced-motion preferences.
 
 ### Don't:
@@ -379,4 +380,4 @@ Share editing replaces the read-only settings summary and includes Cancel. The d
 - Don’t hide horizontal overflow on the document to conceal a layout defect.
 - Don’t turn temporary recipient failures into a claim that the share is permanently unavailable.
 - Don’t let a stale notification obscure irreversible-action guidance or add duplicate feedback for repeated downloads of the same resource.
-- Don’t imply that starting a download proves completion, or that a token secret can be revealed again later.
+- Don’t imply that starting a download proves completion, or that a deleted share can be restored.

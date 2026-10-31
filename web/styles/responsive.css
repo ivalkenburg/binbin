@@ -5,9 +5,6 @@
   #account-tools {
     gap: 8px;
   }
-  .account-name {
-    display: none;
-  }
   .list-head,
   .share-row {
     grid-template-columns:
@@ -91,6 +88,9 @@
   #account-tools {
     gap: 4px;
   }
+  .account-name {
+    display: none;
+  }
   main {
     padding: 28px 16px 40px;
   }
@@ -145,9 +145,6 @@
     flex-direction: column;
     align-items: stretch;
     padding: 12px;
-  }
-  .link-actions {
-    grid-template-columns: minmax(0, 1fr);
   }
   .file-title {
     grid-column: 1;

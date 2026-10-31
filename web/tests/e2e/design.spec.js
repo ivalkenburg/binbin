@@ -387,7 +387,7 @@ test("every page and transient state fits its viewport", async ({
   await context.close();
 });
 
-test("theme selection cycles one icon and persists on navigation", async ({
+test("theme selection persists on navigation and signed-in users choose from the account menu", async ({
   page,
 }) => {
   await page.goto("/");
@@ -418,12 +418,22 @@ test("theme selection cycles one icon and persists on navigation", async ({
   await theme.click();
   await login(page);
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(page.locator("#theme")).toHaveCount(0);
+  const choose = async (name) => {
+    await page.locator("#account-menu").click();
+    await page.getByRole("menuitemradio", { name, exact: true }).click();
+  };
+  await page.locator("#account-menu").click();
+  await expect(
+    page.getByRole("menuitemradio", { name: "Light", exact: true }),
+  ).toHaveAttribute("aria-checked", "true");
+  await page.keyboard.press("Escape");
+  await choose("Dark");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await page.getByRole("link", { name: "Administration", exact: true }).click();
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-  await theme.click();
-  await theme.click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await choose("System");
   await expect(page.locator("html")).not.toHaveAttribute("data-theme");
-  await expect(theme).toHaveAccessibleName(
-    "Color theme: System. Switch to Light.",
-  );
 });

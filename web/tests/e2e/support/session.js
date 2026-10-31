@@ -14,3 +14,8 @@ export async function signIn(page) {
     .fill("browser-test-password");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
 }
+
+export async function signOut(page) {
+  await page.locator("#account-menu").click();
+  await page.getByRole("menuitem", { name: "Sign out", exact: true }).click();
+}

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { login, signIn } from "./support/session.js";
+import { login, signIn, signOut } from "./support/session.js";
 import { seed } from "./support/shares.js";
 
 function gate() {
@@ -75,7 +75,7 @@ test("signing out cancels pending draft setup without locking later uploads", as
   });
   await page.getByRole("button", { name: "Upload files", exact: true }).click();
   await entered.promise;
-  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await signOut(page);
   await expect(page.locator("#login")).toBeVisible();
   waiting.release();
   await page.unroute("**/api/shares");
@@ -229,7 +229,7 @@ test("management downloads get a new capability after logout and login", async (
   let downloading = page.waitForEvent("download");
   await page.locator('[data-action="download"]').first().click();
   await downloading;
-  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await signOut(page);
   await expect(page.locator("#login")).toBeVisible();
   await login(page);
   await page.goto(`/#share/${share.id}`);
@@ -264,7 +264,7 @@ test("logout aborts stalled resume verification before a new sign-in", async ({
     .getByRole("button", { name: "Resume upload", exact: true })
     .click();
   await entered.promise;
-  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await signOut(page);
   await expect(page.locator("#login")).toBeVisible();
   await signIn(page);
   await expect(
@@ -374,9 +374,7 @@ test("invalidated sessions leave management on mutations and sign out", async ({
       password: "second-replacement-password",
       enabled: true,
     });
-    await uploader
-      .getByRole("button", { name: "Sign out", exact: true })
-      .click();
+    await signOut(uploader);
     await expect(uploader.locator("#login")).toBeVisible();
   } finally {
     await context.close();

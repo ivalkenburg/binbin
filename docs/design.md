@@ -274,7 +274,7 @@ Upload, share details, and administration use a flexible working panel plus a se
 
 Spacing follows the frontmatter scale: 12px between related fields/actions, 16px row padding, 20px between fields, 24px panel gaps and working-card padding, and a 24px heading-to-content interval. The primitive card default is 16px padding; its compact size is 12px. Application working and settings cards use 20px, login and recipient cards 24px, reducing to 16px on narrow screens.
 
-- **At 1000px and below:** hide the account name and deadline column, reduce paired-layout settings tracks to 310px and gaps to 20px, and stack paired fields within those layouts.
+- **At 1000px and below:** hide the deadline column, reduce paired-layout settings tracks to 310px and gaps to 20px, and stack paired fields within those layouts.
 - **At 900px and below:** navigation becomes a second header row.
 - **At 760px and below:** paired panels stack, and main horizontal padding becomes 20px. Field pairs can return to two columns when the stacked panel has room. Signed-out and recipient shells omit navigation.
 - **At 480px and below:** navigation uses a two-column grid and page headings clamp to three lines with their full title retained; horizontal padding becomes 16px, paired fields and inline forms stack, and account/user actions wrap or stack. Share rows use two columns, omit their desktop header, and place status beside the filename with size/count metadata below. Controls follow the mobile sizing described above.
@@ -333,9 +333,9 @@ Pill-shaped, compact labels (20px height, 12px medium text, 8px horizontal paddi
 
 ### Navigation
 
-Lucide icons accompany navigation and primary/destructive action labels throughout the app. Familiar actions such as copy, remove, preview, sign out, and pause use icon buttons with accessible names and shadcn tooltips. A single icon button cycles System → Light → Dark → System. Its monitor, sun, or moon icon shows the current preference; its accessible name and tooltip state the current theme and the next choice. A favicon reuses the existing Binbin mark.
+Lucide icons accompany navigation and primary/destructive action labels throughout the app. Familiar actions such as copy, remove, preview, and pause use icon buttons with accessible names and shadcn tooltips. Signed-out and recipient pages show a single icon button that cycles System → Light → Dark → System; its monitor, sun, or moon icon shows the current preference, and its accessible name and tooltip state the current theme and the next choice. Signed-in users choose a theme in the account menu instead. A favicon reuses the existing Binbin mark.
 
-The horizontal header uses ghost links and a secondary current-page link with `aria-current="page"`. Share detail keeps Shares current. Administration is shown to administrators. The existing header and recipient/signed-out behavior described under Layout apply at all routes. Back navigation is a semantic anchor; theme selection remains available on signed-out and recipient pages.
+The horizontal header has Shares and, for administrators, Administration as ghost links with a secondary current-page link (`aria-current="page"`); share detail keeps Shares current. At the right edge, a primary New share link sits beside the account menu: an outline button with the user’s initial, name and a chevron that opens a dropdown with the user and role, a System/Light/Dark radio group, and Sign out. Below 480px the name is hidden and only the initial and chevron remain. The existing header and recipient/signed-out behavior described under Layout apply at all routes. Back navigation is a semantic anchor; theme selection remains available on signed-out and recipient pages.
 
 ### File selection and upload progress
 

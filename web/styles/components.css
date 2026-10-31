@@ -54,15 +54,6 @@
   color: var(--muted-foreground);
   font-variant-numeric: tabular-nums;
 }
-.share-options .field-pair {
-  grid-template-columns: minmax(0, 1fr);
-}
-.preset-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 6px;
-}
 [data-slot="native-select-wrapper"] {
   min-width: 0;
 }
@@ -300,12 +291,6 @@ form > .field-pair,
 .share-link-block {
   margin-bottom: 20px;
 }
-.link-actions {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 8px;
-  margin-top: 8px;
-}
 .detail-file + .detail-file {
   border-top: 1px solid var(--border);
 }
@@ -331,7 +316,7 @@ form > .field-pair,
 }
 
 dl {
-  margin: 0 0 24px;
+  margin: 0 0 16px;
 }
 dl > div {
   display: grid;
@@ -350,8 +335,11 @@ dd {
   overflow-wrap: anywhere;
   font-variant-numeric: tabular-nums;
 }
+.share-actions .full {
+  margin-top: 0;
+}
 .share-actions {
-  margin-top: 24px;
+  margin-top: 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -594,4 +582,32 @@ dd {
 .back > svg {
   width: 16px;
   height: 16px;
+}
+.stack {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+}
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+}
+.account-label {
+  display: grid;
+  gap: 2px;
+}
+.account-label strong {
+  color: var(--foreground);
+  font-size: 13px;
+}
+.account-label small {
+  margin: 0;
 }

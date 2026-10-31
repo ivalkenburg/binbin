@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { login } from "./support/session.js";
+import { login, signOut } from "./support/session.js";
 
 const png = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aZ1cAAAAASUVORK5CYII=",
@@ -606,7 +606,7 @@ test("failed logout preserves a pasted selection and paste works on the file inp
   await page.route("**/api/logout", (route) =>
     route.fulfill({ status: 503, json: { error: "Temporary logout failure" } }),
   );
-  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await signOut(page);
   await expect(page.locator("#notice")).toContainText(
     "Temporary logout failure",
   );

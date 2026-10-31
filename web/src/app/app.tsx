@@ -1,6 +1,6 @@
 import { LinkButton } from "@/components/link-button";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
-import { Files, FilePlus2, Shield, LogOut, X } from "lucide-react";
+import { Files, Plus, Shield, X } from "lucide-react";
 import { AppContext } from "./context";
 import {
   api,
@@ -14,6 +14,7 @@ import { UploadStatus } from "@/components/upload-status";
 import { ThemeControl } from "@/components/theme-control";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { IconButton } from "@/components/icon-button";
+import { AccountMenu } from "@/components/account-menu";
 import { useTheme } from "@/hooks/use-theme";
 import { Alert, AlertDescription, AlertAction } from "@/components/ui/alert";
 import { LoginPage } from "@/pages/login-page";
@@ -191,7 +192,6 @@ export function App() {
                 (
                   [
                     ["shares", "Shares", Files],
-                    ["new", "New share", FilePlus2],
                     ...(session.user.admin
                       ? [["admin", "Administration", Shield] as const]
                       : []),
@@ -218,18 +218,25 @@ export function App() {
                 ))}
             </nav>
             <div id="account-tools">
-              <ThemeControl theme={theme} onChange={setTheme} />
-              {authenticated && (
+              {authenticated ? (
                 <>
-                  <span className="account-name">{session.user.username}</span>
-                  <IconButton
-                    label="Sign out"
-                    data-action="logout"
-                    onClick={() => void logout()}
+                  <LinkButton
+                    variant="default"
+                    href="#new"
+                    aria-current={page === "new" ? "page" : undefined}
                   >
-                    <LogOut aria-hidden="true" />
-                  </IconButton>
+                    <Plus aria-hidden="true" />
+                    New share
+                  </LinkButton>
+                  <AccountMenu
+                    user={session.user}
+                    theme={theme}
+                    onTheme={setTheme}
+                    onLogout={() => void logout()}
+                  />
                 </>
+              ) : (
+                <ThemeControl theme={theme} onChange={setTheme} />
               )}
             </div>
           </div>

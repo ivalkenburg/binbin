@@ -10,6 +10,7 @@ import { LinkButton } from "@/components/link-button";
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
+  Check,
   Copy,
   ExternalLink,
   Pencil,
@@ -45,6 +46,13 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { CheckField, Field } from "@/components/forms";
+import { Field as FieldRoot, FieldLabel } from "@/components/ui/field";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import { FilePicker } from "@/components/file-picker";
 import { DownloadButton, FileOpenButton } from "@/components/download-controls";
 import { FileTypeIcon } from "@/components/file-preview";
@@ -258,6 +266,12 @@ function ShareSettings({
 }) {
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(timer);
+  }, [copied]);
   const { run, pending } = useTask();
   const { notify, uploads } = useApp();
   const link = useRef<HTMLInputElement>(null);
@@ -282,38 +296,47 @@ function ShareSettings({
       <div id="share-overview" hidden={editing}>
         {s.state === "active" && (
           <div className="share-link-block">
-            <Field
-              label="Share link"
-              id="share-url"
-              ref={link}
-              readOnly
-              value={s.url}
-            />
-            <div className="link-actions">
-              <Button
-                variant="default"
-                data-action="copy"
-                onClick={() =>
-                  void run(async () => {
-                    link.current?.select();
-                    await copyText(s.url);
-                    notify("Copied to clipboard.");
-                  })
-                }
-              >
-                <Copy aria-hidden="true" />
-                Copy link
-              </Button>
-              <LinkButton
-                variant="outline"
-                href={s.url}
-                target="_blank"
-                rel="noopener"
-              >
-                <ExternalLink aria-hidden="true" />
-                Open public page
-              </LinkButton>
-            </div>
+            <FieldRoot>
+              <FieldLabel htmlFor="share-url">Share link</FieldLabel>
+              <InputGroup>
+                <InputGroupInput
+                  id="share-url"
+                  ref={link}
+                  readOnly
+                  value={s.url}
+                />
+                <InputGroupAddon>
+                  <InputGroupButton
+                    aria-label="Copy link"
+                    data-action="copy"
+                    onClick={() =>
+                      void run(async () => {
+                        link.current?.select();
+                        await copyText(s.url);
+                        setCopied(true);
+                        notify("Copied to clipboard.");
+                      })
+                    }
+                  >
+                    {copied ? (
+                      <Check aria-hidden="true" />
+                    ) : (
+                      <Copy aria-hidden="true" />
+                    )}
+                  </InputGroupButton>
+                </InputGroupAddon>
+              </InputGroup>
+            </FieldRoot>
+            <LinkButton
+              variant="outline"
+              className="full"
+              href={s.url}
+              target="_blank"
+              rel="noopener"
+            >
+              <ExternalLink aria-hidden="true" />
+              Open public page
+            </LinkButton>
           </div>
         )}
         <dl>

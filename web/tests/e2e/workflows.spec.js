@@ -187,36 +187,24 @@ test("dashboard filters by status, sorts, and copies a share link", async ({
   );
 });
 
-test("expiry and allowance presets fill the new share form", async ({
+test("the share link copies from inside its input and opens the public page below", async ({
   page,
 }) => {
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
   await login(page);
-  await page
-    .getByRole("link", { name: "New share", exact: true })
-    .first()
-    .click();
-  const days = page.getByLabel("Expires after (days)", { exact: true });
-  const allowance = page.getByLabel("Download allowance", { exact: true });
-  await page
-    .getByRole("group", { name: "days presets" })
-    .getByRole("button", { name: "30", exact: true })
-    .click();
-  await expect(days).toHaveValue("30");
-  await page
-    .getByRole("group", { name: "days presets" })
-    .getByRole("button", { name: "No deadline" })
-    .click();
-  await expect(days).toHaveValue("");
-  await page
-    .getByRole("group", { name: "limit presets" })
-    .getByRole("button", { name: "5", exact: true })
-    .click();
-  await expect(allowance).toHaveValue("5");
-  await page.getByRole("link", { name: "Shares", exact: true }).click();
-  await page
-    .getByRole("link", { name: "New share", exact: true })
-    .first()
-    .click();
-  await expect(days).toHaveValue("");
-  await expect(allowance).toHaveValue("5");
+  const share = await seed(page, { title: "Copy inside input" });
+  await page.goto(`/#share/${share.id}`);
+  const link = page.locator("#share-url");
+  await expect(link).toHaveValue(share.url);
+  await page.getByRole("button", { name: "Copy link", exact: true }).click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+    share.url,
+  );
+  const open = page.getByRole("link", { name: "Open public page" });
+  const [input, button] = await Promise.all([
+    page.locator('[data-slot="input-group"]').boundingBox(),
+    open.boundingBox(),
+  ]);
+  expect(Math.abs(input.width - button.width)).toBeLessThan(2);
+  expect(button.y).toBeGreaterThan(input.y + input.height);
 });

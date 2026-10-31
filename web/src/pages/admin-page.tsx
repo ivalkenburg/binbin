@@ -43,151 +43,154 @@ export function AdminPage() {
         }}
       />
       <div className="admin-layout">
-        <Panel className="work-area" title="Accounts">
-          {users.map((account) => (
-            <div className="user-row" key={account.id}>
-              <span>
-                <strong>{account.username}</strong>
-                <small>
-                  {account.admin ? "Administrator" : "Uploader"} ·{" "}
-                  {account.enabled ? "Enabled" : "Disabled"}
-                </small>
-              </span>
-              <div>
-                {account.id !== user?.id && (
+        <div className="stack">
+          <Panel className="work-area" title="Accounts">
+            {users.map((account) => (
+              <div className="user-row" key={account.id}>
+                <span>
+                  <strong>{account.username}</strong>
+                  <small>
+                    {account.admin ? "Administrator" : "Uploader"} ·{" "}
+                    {account.enabled ? "Enabled" : "Disabled"}
+                  </small>
+                </span>
+                <div>
+                  {account.id !== user?.id && (
+                    <Button
+                      variant="outline"
+                      data-action="toggle-user"
+                      disabled={pending}
+                      onClick={() =>
+                        void run(async (signal) => {
+                          await api(`/api/users/${account.id}`, {
+                            method: "PATCH",
+                            body: { enabled: !account.enabled },
+                            signal,
+                          });
+                          reload();
+                          setReset(null);
+                          notify(
+                            "Account updated. Existing sessions were invalidated.",
+                          );
+                        })
+                      }
+                    >
+                      {account.enabled ? (
+                        <UserX aria-hidden="true" />
+                      ) : (
+                        <UserCheck aria-hidden="true" />
+                      )}
+                      {account.enabled ? "Disable" : "Enable"}
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
-                    data-action="toggle-user"
+                    data-action="reset-user"
                     disabled={pending}
-                    onClick={() =>
-                      void run(async (signal) => {
-                        await api(`/api/users/${account.id}`, {
-                          method: "PATCH",
-                          body: { enabled: !account.enabled },
-                          signal,
-                        });
+                    onClick={() => setReset(account)}
+                  >
+                    <KeyRound aria-hidden="true" />
+                    Reset password
+                  </Button>
+                </div>
+              </div>
+            ))}
+            <div id="password-reset-area">
+              {reset && (
+                <form
+                  key={reset.id}
+                  id="password-reset"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    const values = new FormData(event.currentTarget);
+                    void run(async (signal) => {
+                      await api(`/api/users/${reset.id}`, {
+                        method: "PATCH",
+                        body: {
+                          password: values.get("password"),
+                          enabled: reset.enabled,
+                        },
+                        signal,
+                      });
+                      if (reset.id === user?.id) {
+                        signedOut();
+                        notify("Password reset. Sign in again.");
+                      } else {
                         reload();
                         setReset(null);
                         notify(
-                          "Account updated. Existing sessions were invalidated.",
+                          "Password reset. Existing sessions were invalidated.",
                         );
-                      })
-                    }
-                  >
-                    {account.enabled ? (
-                      <UserX aria-hidden="true" />
-                    ) : (
-                      <UserCheck aria-hidden="true" />
-                    )}
-                    {account.enabled ? "Disable" : "Enable"}
-                  </Button>
-                )}
-                <Button
-                  variant="outline"
-                  data-action="reset-user"
-                  disabled={pending}
-                  onClick={() => setReset(account)}
-                >
-                  <KeyRound aria-hidden="true" />
-                  Reset password
-                </Button>
-              </div>
-            </div>
-          ))}
-          <div id="password-reset-area">
-            {reset && (
-              <form
-                key={reset.id}
-                id="password-reset"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  const values = new FormData(event.currentTarget);
-                  void run(async (signal) => {
-                    await api(`/api/users/${reset.id}`, {
-                      method: "PATCH",
-                      body: {
-                        password: values.get("password"),
-                        enabled: reset.enabled,
-                      },
-                      signal,
+                      }
                     });
-                    if (reset.id === user?.id) {
-                      signedOut();
-                      notify("Password reset. Sign in again.");
-                    } else {
-                      reload();
-                      setReset(null);
-                      notify(
-                        "Password reset. Existing sessions were invalidated.",
-                      );
-                    }
+                  }}
+                >
+                  <h3>Set a new password for {reset.username}</h3>
+                  <Field
+                    label="New password"
+                    name="password"
+                    type="password"
+                    minLength={12}
+                    maxLength={1024}
+                    required
+                    autoFocus
+                    autoComplete="new-password"
+                  />
+                  <Button variant="default" type="submit" disabled={pending}>
+                    <KeyRound aria-hidden="true" />
+                    Reset password and invalidate sessions
+                  </Button>
+                </form>
+              )}
+            </div>
+          </Panel>
+          <Panel className="work-area" title="Create account">
+            <form
+              id="new-user"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const values = new FormData(event.currentTarget);
+                const form = event.currentTarget;
+                void run(async (signal) => {
+                  await api("/api/users", {
+                    method: "POST",
+                    body: {
+                      username: values.get("username"),
+                      password: values.get("password"),
+                      admin: values.has("admin"),
+                    },
+                    signal,
                   });
-                }}
-              >
-                <h3>Set a new password for {reset.username}</h3>
-                <Field
-                  label="New password"
-                  name="password"
-                  type="password"
-                  minLength={12}
-                  maxLength={1024}
-                  required
-                  autoFocus
-                  autoComplete="new-password"
-                />
-                <Button variant="default" type="submit" disabled={pending}>
-                  <KeyRound aria-hidden="true" />
-                  Reset password and invalidate sessions
-                </Button>
-              </form>
-            )}
-          </div>
-          <h3>Create account</h3>
-          <form
-            id="new-user"
-            onSubmit={(event) => {
-              event.preventDefault();
-              const values = new FormData(event.currentTarget);
-              const form = event.currentTarget;
-              void run(async (signal) => {
-                await api("/api/users", {
-                  method: "POST",
-                  body: {
-                    username: values.get("username"),
-                    password: values.get("password"),
-                    admin: values.has("admin"),
-                  },
-                  signal,
+                  form.reset();
+                  reload();
+                  notify("Account created.");
                 });
-                form.reset();
-                reload();
-                notify("Account created.");
-              });
-            }}
-          >
-            <Field
-              label="Username"
-              name="username"
-              maxLength={64}
-              required
-              autoComplete="off"
-            />
-            <Field
-              label="Initial password"
-              name="password"
-              type="password"
-              minLength={12}
-              maxLength={1024}
-              required
-              autoComplete="new-password"
-            />
-            <CheckField label="Administrator access" name="admin" />
-            <Button type="submit" variant="default" disabled={pending}>
-              <UserPlus aria-hidden="true" />
-              Create account
-            </Button>
-          </form>
-        </Panel>
+              }}
+            >
+              <Field
+                label="Username"
+                name="username"
+                maxLength={64}
+                required
+                autoComplete="off"
+              />
+              <Field
+                label="Initial password"
+                name="password"
+                type="password"
+                minLength={12}
+                maxLength={1024}
+                required
+                autoComplete="new-password"
+              />
+              <CheckField label="Administrator access" name="admin" />
+              <Button type="submit" variant="default" disabled={pending}>
+                <UserPlus aria-hidden="true" />
+                Create account
+              </Button>
+            </form>
+          </Panel>
+        </div>
         <Panel className="share-options" title="Instance limits">
           <form
             id="instance-settings"

@@ -5,7 +5,7 @@ import { useRemote } from "@/hooks/use-remote";
 import { Upload } from "lucide-react";
 import { collectionErrors } from "@/transfers/upload-manager";
 import { fileCount, optionalNumber } from "@/lib/format";
-import { Field, PresetField, type Preset } from "@/components/forms";
+import { Field } from "@/components/forms";
 import { FilePicker } from "@/components/file-picker";
 import { Button } from "@/components/ui/button";
 import type { Limits, NewShare } from "@/types/api";
@@ -14,11 +14,7 @@ export function NewSharePage() {
   const { uploads, navigate } = useApp();
   const collection = uploads.get("new")!;
   const [title, setTitle] = useState(collection.details?.title ?? "");
-  const [chosenDays, setDays] = useState(collection.details?.days);
-  const [allowance, setAllowance] = useState(collection.details?.limit ?? "");
   const busy = collection.creating;
-  const persist = (patch: Record<string, string>) =>
-    uploads.saveDetails({ ...uploads.get("new")!.details, ...patch });
   const files = collection.items.filter((item) => !item.removedAt);
   useEffect(() => {
     if (limits.data) uploads.setLimits(limits.data);
@@ -37,13 +33,6 @@ export function NewSharePage() {
   }, [uploads]);
   if (!limits.data) return <Loading error={limits.error} />;
   const settings = limits.data.settings;
-  const days = chosenDays ?? String(settings.default_days ?? "");
-  const presets = (values: number[], max: number | null, none: string) => [
-    ...values
-      .filter((n) => max === null || n <= max)
-      .map((n): Preset => ({ value: String(n), label: String(n) })),
-    ...(max === null ? [{ value: "", label: none }] : []),
-  ];
   return (
     <>
       <Heading
@@ -101,39 +90,27 @@ export function NewSharePage() {
               maxLength={200}
             />
             <div className="field-pair">
-              <PresetField
+              <Field
                 label="Expires after (days)"
                 name="days"
                 type="number"
                 min={1}
+                defaultValue={
+                  collection.details?.days ?? settings.default_days ?? ""
+                }
                 max={settings.max_days ?? undefined}
                 placeholder="No deadline"
                 disabled={busy}
-                value={days}
-                presets={presets([1, 7, 30], settings.max_days, "No deadline")}
-                onValueChange={(value) => {
-                  setDays(value);
-                  persist({ days: value });
-                }}
               />
-              <PresetField
+              <Field
                 label="Download allowance"
                 name="limit"
+                defaultValue={collection.details?.limit ?? ""}
                 type="number"
                 min={1}
                 max={settings.max_downloads ?? undefined}
                 placeholder="Unlimited"
                 disabled={busy}
-                value={allowance}
-                presets={presets(
-                  [1, 5, 10],
-                  settings.max_downloads,
-                  "Unlimited",
-                )}
-                onValueChange={(value) => {
-                  setAllowance(value);
-                  persist({ limit: value });
-                }}
               />
             </div>
             <p className="fine muted">

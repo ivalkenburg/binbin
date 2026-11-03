@@ -29,6 +29,7 @@ impl Fixture {
             .create_share(
                 &self.actor,
                 NewShare {
+                    delete_after_download: false,
                     title: "Project files".into(),
                     files: if multi {
                         vec![

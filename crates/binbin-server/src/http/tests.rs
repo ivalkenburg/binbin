@@ -25,6 +25,7 @@ impl Fixture {
             .create_share(
                 &self.actor,
                 NewShare {
+                    delete_after_download: false,
                     title: "Project files".into(),
                     files: if multi {
                         vec![
@@ -99,6 +100,264 @@ fn ranges_cover_closed_open_suffix_and_invalid() {
     assert_eq!(byte_range("bytes=0-", 0), None);
 }
 
+fn deletion_share(f: &Fixture, multi: bool) -> ShareView {
+    let draft = f.draft(None, multi);
+    let id = draft.share["id"].as_str().unwrap();
+    f.app
+        .edit(
+            &f.actor,
+            id,
+            EditShare {
+                title: "Delete on delivery".into(),
+                expires: None,
+                days: Some(7),
+                limit: None,
+                password: None,
+                change_password: false,
+                delete_after_download: Some(true),
+            },
+        )
+        .unwrap();
+    f.app
+        .upload(&f.actor, &draft.files[0].id, 0, b"hello")
+        .unwrap();
+    f.app.publish(&f.actor, id).unwrap()
+}
+
+#[tokio::test]
+async fn deletion_waits_for_body_eof_and_respects_range_coverage() {
+    let f = Fixture::new();
+    let s = deletion_share(&f, false);
+    let id = s.share["id"].as_str().unwrap();
+    let token = f.transfer(&s, &s.files[0].id);
+    let path = format!("/d/{token}");
+    let observer = f.app.observe_download(&token).unwrap();
+    for (method, suffix, headers, expected) in [
+        ("HEAD", "", vec![], 200),
+        ("GET", "", vec![("range", "bytes=99-")], 416),
+        ("GET", "?inline=true", vec![], 400),
+        ("GET", "", vec![("if-none-match", "*")], 304),
+    ] {
+        assert_eq!(
+            request(
+                &f.app,
+                method,
+                &format!("{path}{suffix}"),
+                &headers,
+                json!(null)
+            )
+            .await
+            .0,
+            expected
+        );
+        assert_eq!(observer.status().unwrap(), "available");
+    }
+    assert_eq!(
+        request(&f.app, "GET", &path, &[("range", "bytes=0-1")], json!(null))
+            .await
+            .2,
+        b"he"
+    );
+    assert!(f.app.inspect(&f.actor, id).is_ok());
+    let response = router(f.app.clone())
+        .oneshot(
+            Request::builder()
+                .uri(&path)
+                .header("range", "bytes=2-")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), 206);
+    assert!(
+        f.app.inspect(&f.actor, id).is_ok(),
+        "Headers alone must not delete the share"
+    );
+    assert_eq!(
+        response.into_body().collect().await.unwrap().to_bytes(),
+        "llo"
+    );
+    assert_eq!(observer.outcome(), 1);
+    assert_eq!(f.app.inspect(&f.actor, id).unwrap_err().0, 404);
+    assert_eq!(request(&f.app, "GET", &path, &[], json!(null)).await.0, 404);
+}
+
+#[tokio::test]
+async fn dropped_response_preserves_files_and_reserves_for_the_original_token() {
+    let f = Fixture::new();
+    let s = deletion_share(&f, false);
+    let id = s.share["id"].as_str().unwrap();
+    let token = f.transfer(&s, &s.files[0].id);
+    let other = f.transfer(&s, &s.files[0].id);
+    let response = router(f.app.clone())
+        .oneshot(
+            Request::builder()
+                .uri(format!("/d/{token}"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        request(&f.app, "GET", &format!("/d/{other}"), &[], json!(null))
+            .await
+            .0,
+        409
+    );
+    drop(response);
+    // Drain blocking work queued by body Drop before checking retry behavior.
+    for _ in 0..100 {
+        if f.app.observe_download(&token).unwrap().status().unwrap() == "interrupted" {
+            break;
+        }
+        tokio::task::yield_now().await;
+    }
+    assert!(f.app.inspect(&f.actor, id).is_ok());
+    assert_eq!(
+        request(&f.app, "GET", &format!("/d/{token}"), &[], json!(null))
+            .await
+            .2,
+        b"hello"
+    );
+    assert_eq!(f.app.inspect(&f.actor, id).unwrap_err().0, 404);
+}
+
+#[tokio::test]
+async fn zero_byte_deletion_share_is_deleted_only_by_a_get_response() {
+    let f = Fixture::new();
+    let s = f
+        .app
+        .create_share(
+            &f.actor,
+            NewShare {
+                title: "Empty file".into(),
+                files: vec![NewFile {
+                    name: "empty.txt".into(),
+                    size: 0,
+                }],
+                days: Some(7),
+                limit: None,
+                password: None,
+                delete_after_download: true,
+            },
+        )
+        .unwrap();
+    let id = s.share["id"].as_str().unwrap();
+    let s = f.app.publish(&f.actor, id).unwrap();
+    let token = f.transfer(&s, &s.files[0].id);
+    let path = format!("/d/{token}");
+    assert_eq!(
+        request(&f.app, "HEAD", &path, &[], json!(null)).await.0,
+        200
+    );
+    assert!(f.app.inspect(&f.actor, id).is_ok());
+    assert_eq!(request(&f.app, "GET", &path, &[], json!(null)).await.0, 200);
+    assert_eq!(f.app.inspect(&f.actor, id).unwrap_err().0, 404);
+}
+
+#[tokio::test]
+async fn interrupted_large_response_resumes_its_streamed_prefix_before_deletion() {
+    let f = Fixture::new();
+    let bytes = vec![7; 2 * 1024 * 1024];
+    let s = f
+        .app
+        .create_share(
+            &f.actor,
+            NewShare {
+                title: "Large one-time file".into(),
+                files: vec![NewFile {
+                    name: "large.bin".into(),
+                    size: bytes.len() as u64,
+                }],
+                days: Some(7),
+                limit: None,
+                password: None,
+                delete_after_download: true,
+            },
+        )
+        .unwrap();
+    let id = s.share["id"].as_str().unwrap();
+    f.app.upload(&f.actor, &s.files[0].id, 0, &bytes).unwrap();
+    let s = f.app.publish(&f.actor, id).unwrap();
+    let token = f.transfer(&s, &s.files[0].id);
+    let path = format!("/d/{token}");
+    let observer = f.app.observe_download(&token).unwrap();
+    let mut body = router(f.app.clone())
+        .oneshot(Request::builder().uri(&path).body(Body::empty()).unwrap())
+        .await
+        .unwrap()
+        .into_body();
+    let prefix = body.frame().await.unwrap().unwrap().into_data().unwrap();
+    assert!(!prefix.is_empty() && prefix.len() < bytes.len());
+    drop(body);
+    tokio::time::timeout(std::time::Duration::from_secs(5), async {
+        while observer.status().unwrap() != "interrupted" {
+            tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+        }
+    })
+    .await
+    .unwrap();
+    assert!(f.app.inspect(&f.actor, id).is_ok());
+    let range = format!("bytes={}-", prefix.len());
+    let (status, _, rest) = request(&f.app, "GET", &path, &[("range", &range)], json!(null)).await;
+    assert_eq!(status, 206);
+    assert_eq!(rest, bytes[prefix.len()..]);
+    assert_eq!(observer.outcome(), 1);
+    assert_eq!(f.app.inspect(&f.actor, id).unwrap_err().0, 404);
+}
+
+#[tokio::test]
+async fn restart_retransmits_an_uncheckpointed_prefix_and_deletes_after_delivery() {
+    let f = Fixture::new();
+    let share = deletion_share(&f, false);
+    let id = share.share["id"].as_str().unwrap();
+    let token = f.transfer(&share, &share.files[0].id);
+    let lease = f.app.begin_download(&token).unwrap().unwrap();
+    lease.checkpoint(0, 1).unwrap();
+    // The client received bytes 0..3, but the process died before recording
+    // bytes 1..3. Dropping the core lease simulates loss without a body callback.
+    drop(lease);
+    let restarted = App::open(&f.app.root, f.app.public_url.clone()).unwrap();
+    let (status, headers, body) = request(
+        &restarted,
+        "GET",
+        &format!("/d/{token}"),
+        &[("range", "bytes=3-")],
+        json!(null),
+    )
+    .await;
+    assert_eq!(
+        status, 200,
+        "A resume beyond durable coverage must restart the client"
+    );
+    assert!(!headers.contains_key("content-range"));
+    assert_eq!(body, b"hello");
+    assert_eq!(f.app.inspect(&f.actor, id).unwrap_err().0, 404);
+    assert!(!f.app.root.join(id).exists());
+}
+
+#[tokio::test]
+async fn deliberate_disjoint_ranges_keep_their_partial_response_semantics() {
+    let f = Fixture::new();
+    let share = deletion_share(&f, false);
+    let id = share.share["id"].as_str().unwrap();
+    let token = f.transfer(&share, &share.files[0].id);
+    let path = format!("/d/{token}");
+    for (range, expected) in [("bytes=1-1", "e"), ("bytes=3-4", "lo"), ("bytes=0-0", "h")] {
+        let (status, _, body) =
+            request(&f.app, "GET", &path, &[("range", range)], json!(null)).await;
+        assert_eq!(status, 206);
+        assert_eq!(body, expected.as_bytes());
+        assert!(f.app.inspect(&f.actor, id).is_ok());
+    }
+    let (status, _, body) =
+        request(&f.app, "GET", &path, &[("range", "bytes=2-2")], json!(null)).await;
+    assert_eq!(status, 206);
+    assert_eq!(body, b"l");
+    assert_eq!(f.app.inspect(&f.actor, id).unwrap_err().0, 404);
+}
+
 async fn request(
     app: &App,
     method: &str,
@@ -143,6 +402,7 @@ async fn inline_files_preserve_download_headers_ranges_and_allowance() {
             .create_share(
                 &fixture.actor,
                 NewShare {
+                    delete_after_download: false,
                     title: "Browser file".into(),
                     files: vec![NewFile {
                         name: name.into(),

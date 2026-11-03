@@ -3,7 +3,7 @@ use crate::{
     crypto::{hash_password, secret, verify_password},
     error::{Error, Result, bad, unavailable},
     models::{EditShare, Identity, NewShare, Settings, Share, ShareView, StoredFile},
-    storage::database::{all, get, put},
+    storage::database::{all, get, put, remove},
 };
 use rusqlite::Connection;
 use std::{
@@ -93,7 +93,18 @@ impl App {
             .transpose()?;
         self.authenticated_db(a, |db| {
             let settings: Settings = get(db, "settings", "instance")?.unwrap_or_default();
-            self.check_limits(&settings, n.days, n.limit)?;
+            if n.delete_after_download && n.limit.is_some() {
+                return Err(bad("Delete after download replaces the download allowance"));
+            }
+            self.check_limits(
+                &settings,
+                n.days,
+                if n.delete_after_download {
+                    Some(1)
+                } else {
+                    n.limit
+                },
+            )?;
             if n.files.is_empty() || n.files.len() > settings.file_count {
                 return Err(bad("Invalid number of files"));
             }
@@ -139,6 +150,7 @@ impl App {
                 expires: None,
                 days: n.days,
                 limit: n.limit,
+                delete_after_download: n.delete_after_download,
                 used: 0,
                 password,
                 version: 0,
@@ -169,6 +181,10 @@ impl App {
         obj.remove("password");
         obj.insert("password_protected".into(), s.password.is_some().into());
         obj.insert("state".into(), self.state(s).into());
+        obj.insert(
+            "downloading".into(),
+            (s.delete_after_download && self.download_reserved_in(db, &s.id)?).into(),
+        );
         Ok(ShareView {
             share: value,
             files: self.files_in(db, &s.id)?,
@@ -185,7 +201,12 @@ impl App {
         self.authenticated_db(a, |db| {
             all::<Share>(db, "share")?
                 .iter()
-                .filter(|s| a.user.admin || s.owner == a.user.id)
+                .filter(|s| {
+                    (a.user.admin || s.owner == a.user.id)
+                        && s.state != "deleting"
+                        && (!s.delete_after_download
+                            || matches!(self.state(s).as_str(), "active" | "draft" | "preparing"))
+                })
                 .rev()
                 .map(|s| self.view_in(db, s))
                 .collect()
@@ -195,6 +216,12 @@ impl App {
         self.authenticated_db(a, |db| {
             let s: Share = get(db, "share", id)?.ok_or_else(unavailable)?;
             self.owns(a, &s)?;
+            if s.state == "deleting"
+                || (s.delete_after_download
+                    && !matches!(self.state(&s).as_str(), "active" | "draft" | "preparing"))
+            {
+                return Err(unavailable());
+            }
             self.view_in(db, &s)
         })
     }
@@ -210,8 +237,18 @@ impl App {
         self.authenticated_db(a, |db| {
             let mut s: Share = get(db, "share", id)?.ok_or_else(unavailable)?;
             self.owns(a, &s)?;
-            if self.state(&s) != "active" {
-                return Err(bad("Only active shares can be edited"));
+            let draft = s.state == "draft" && s.created + DAY > self.now();
+            if self.state(&s) != "active" && !draft {
+                return Err(bad("Only active shares and unexpired drafts can be edited"));
+            }
+            if let Some(delete) = e.delete_after_download {
+                if !draft && delete != s.delete_after_download {
+                    return Err(bad("Delete after download is locked after publication"));
+                }
+                s.delete_after_download = delete;
+            }
+            if s.delete_after_download && e.limit.is_some() {
+                return Err(bad("Delete after download replaces the download allowance"));
             }
             if e.title.trim().is_empty() || e.title.len() > 200 {
                 return Err(bad("Invalid title"));
@@ -220,11 +257,22 @@ impl App {
             if e.limit == Some(0)
                 || settings
                     .max_downloads
-                    .is_some_and(|m| e.limit.is_none_or(|n| n > m))
+                    .is_some_and(|m| !s.delete_after_download && e.limit.is_none_or(|n| n > m))
             {
                 return Err(bad("Invalid download allowance"));
             }
-            if settings.max_days.is_some_and(|d| {
+            if draft {
+                self.check_limits(
+                    &settings,
+                    e.days,
+                    if s.delete_after_download {
+                        Some(1)
+                    } else {
+                        e.limit
+                    },
+                )?;
+                s.days = e.days;
+            } else if settings.max_days.is_some_and(|d| {
                 e.expires
                     .is_none_or(|t| t > s.published.unwrap_or(s.created) + i64::from(d) * DAY)
             }) {
@@ -236,6 +284,7 @@ impl App {
             if e.change_password {
                 s.password = password;
                 s.version += 1;
+                remove(db, "download_reservation", id)?;
             }
             put(db, "share", id, &s)?;
             self.view_in(db, &s)
@@ -267,7 +316,9 @@ impl App {
             Ok(serde_json::json!({
                 "id": id, "title": s.title, "files": files,
                 "zip_size": s.zip_size, "zip_hash": s.zip_hash,
-                "expires": s.expires, "remaining": s.limit.map(|n| n.saturating_sub(s.used))
+                "expires": s.expires, "remaining": s.limit.map(|n| n.saturating_sub(s.used)),
+                "delete_after_download": s.delete_after_download,
+                "downloading": s.delete_after_download && self.download_reserved_in(db, id)?
             }))
         })
     }

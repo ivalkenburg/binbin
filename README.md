@@ -25,13 +25,15 @@ The container runs as UID/GID **10001**. A named volume is configured automatica
 ## Browser workflow
 
 1. Sign in, choose New share, and select or drop files.
-2. Set a title, lifetime, download allowance, and optional password (at least 12 characters).
+2. Set a title, lifetime, download allowance, and optional password (at least 12 characters). Or select **Delete after download** to remove the share after one complete recipient download.
 3. Upload, then review and explicitly publish. Add or remove files until publication, preview images, or paste screenshots. Uploads continue while navigating Binbin. After a refresh, select only unfinished originals to resume. Private drafts last 24 hours after creation.
 4. Copy the share link. Recipients do not need accounts.
 
-Each public file or ZIP transfer consumes one allowance **when its body starts**, rather than when the link is viewed. Its retry credential permits resumption of that same resource for 24 hours from first transfer, without another charge. A count-exhausted share retains content for outstanding transfers. Time expiry, password changes, and revocation block further requests; an already-streaming response may finish.
+For ordinary shares, each public file or ZIP transfer consumes one allowance **when its body starts**, rather than when the link is viewed. Its retry credential permits resumption of that same resource for 24 hours from first transfer, without another charge. A count-exhausted share retains content for outstanding transfers. Time expiry, password changes, and revocation block further requests; an already-streaming response may finish.
 
-Downloads through authenticated management commands bypass allowances. Public-link downloads consume them even for the owner. Expired/revoked shares cannot be restored. File contents are reclaimed by the minute-based cleanup job; minimal history remains for 30 days. See [the lifecycle specification](docs/specification.md).
+**Delete after download** replaces the allowance and locks at publication. Recipients see a warning and download one file or the entire batch as one ZIP; individual multi-file downloads and public previews are disabled. Only one response can stream at a time. After interruption, the same browser's saved transfer can resume for 15 minutes; afterward the reservation releases and a new transfer can start. A complete server delivery immediately revokes access and removes files, share details, passwords, transfer credentials, and history. Expiration and manual deletion also remove these records. Owner/administrator management previews and downloads do not trigger deletion; public links do, including for the owner. Server delivery cannot prove that a person saved or read the file. Deletion removes live application records and unlinks files; it does not securely overwrite disks or erase infrastructure logs and backups.
+
+Downloads through authenticated management commands bypass allowances. Public-link downloads consume them even for the owner. Expired/revoked shares cannot be restored. For ordinary shares, file contents are reclaimed by the minute-based cleanup job and minimal history remains for 30 days. See [the lifecycle specification](docs/specification.md).
 
 ## Defaults and limits
 

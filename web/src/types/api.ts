@@ -40,6 +40,9 @@ export interface Share {
   created: number;
   expires: number | null;
   limit: number | null;
+  delete_after_download: boolean;
+  downloading: boolean;
+  days: number | null;
   used: number;
   reserved: number;
   password_protected: boolean;
@@ -56,11 +59,14 @@ export interface PublicShare {
   zip_size: number;
   expires: number | null;
   remaining: number | null;
+  delete_after_download: boolean;
+  downloading: boolean;
 }
 export interface NewShare {
   title: string;
   files: { name: string; size: number }[];
   days: number | null;
   limit: number | null;
+  delete_after_download: boolean;
   password: string | null;
 }

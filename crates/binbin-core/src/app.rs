@@ -5,14 +5,17 @@ use crate::{
 };
 use rusqlite::{Connection, Transaction};
 use std::{
+    collections::{HashMap, HashSet},
     fs,
     path::{Path, PathBuf},
     sync::{
-        Arc, Mutex,
-        atomic::{AtomicI64, Ordering},
+        Arc, Mutex, Weak,
+        atomic::{AtomicI64, AtomicU8, Ordering},
     },
     time::{SystemTime, UNIX_EPOCH},
 };
+
+type DownloadObservers = HashMap<String, Vec<(Option<String>, Weak<AtomicU8>)>>;
 
 #[derive(Clone)]
 pub struct App {
@@ -21,6 +24,8 @@ pub struct App {
     pub public_url: String,
     pub secure_cookie: bool,
     pub(crate) clock: Arc<AtomicI64>,
+    pub(crate) active_downloads: Arc<Mutex<HashSet<String>>>,
+    pub(crate) download_observers: Arc<Mutex<DownloadObservers>>,
 }
 
 impl App {
@@ -58,6 +63,8 @@ impl App {
             public_url: parsed.origin().ascii_serialization(),
             secure_cookie,
             clock: Arc::new(AtomicI64::new(0)),
+            active_downloads: Arc::new(Mutex::new(HashSet::new())),
+            download_observers: Arc::new(Mutex::new(HashMap::new())),
         })
     }
     pub fn now(&self) -> i64 {

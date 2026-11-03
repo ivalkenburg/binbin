@@ -161,6 +161,25 @@ export class UploadManager {
   saveDetails(details: Record<string, string>) {
     this.get("new")!.details = details;
   }
+  forget(id: string) {
+    this.pause(id);
+    this.collections.delete(id);
+    this.emit();
+  }
+  async editSettings(id: string, body: unknown, signal: AbortSignal) {
+    const value = this.get(id);
+    if (!value?.share || value.share.state !== "draft")
+      throw new Error("This draft can no longer be edited.");
+    await this.enqueue(value, async (lifetime) => {
+      const share = await api<Share>(`/api/shares/${id}`, {
+        method: "PATCH",
+        body,
+        signal: AbortSignal.any([signal, lifetime]),
+      });
+      this.merge(value, share, true);
+      this.emit();
+    });
+  }
   private async refreshLimits(signal: AbortSignal) {
     try {
       this.limits = await api<Limits>("/api/settings", { signal });

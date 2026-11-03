@@ -54,6 +54,8 @@ pub struct Share {
     pub expires: Option<i64>,
     pub days: Option<u32>,
     pub limit: Option<u64>,
+    #[serde(default)]
+    pub delete_after_download: bool,
     pub used: u64,
     pub password: Option<String>,
     pub version: u64,
@@ -111,6 +113,8 @@ pub struct NewShare {
     pub files: Vec<NewFile>,
     pub days: Option<u32>,
     pub limit: Option<u64>,
+    #[serde(default)]
+    pub delete_after_download: bool,
     pub password: Option<String>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -121,6 +125,19 @@ pub struct EditShare {
     pub password: Option<String>,
     #[serde(default)]
     pub change_password: bool,
+    pub delete_after_download: Option<bool>,
+    pub days: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct DownloadReservation {
+    pub transfer: String,
+    pub until: i64,
+    pub ranges: Vec<(u64, u64)>,
+    #[serde(default)]
+    pub active: bool,
+    #[serde(default)]
+    pub uncertain: bool,
 }
 #[derive(Debug, Clone, Serialize)]
 pub struct ShareView {

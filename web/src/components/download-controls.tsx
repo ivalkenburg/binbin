@@ -58,6 +58,7 @@ export function DownloadButton({
   iconOnly = false,
   title,
   className,
+  onPrepared,
 }: {
   share: Share | PublicShare;
   resource: string;
@@ -68,6 +69,7 @@ export function DownloadButton({
   iconOnly?: boolean;
   title?: string;
   className?: string;
+  onPrepared?: (href: string) => Promise<void>;
 }) {
   const { csrf, notify } = useApp();
   const { pending, run } = useTask();
@@ -91,6 +93,7 @@ export function DownloadButton({
             scope: management ? csrf : "public",
             password,
             signal,
+            onPrepared,
           });
           if (!management) notify("");
         })

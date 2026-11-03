@@ -36,6 +36,7 @@ export function Heading({
   );
 }
 export const statusLabels: Record<string, string> = {
+  downloading: "Downloading",
   active: "Available",
   draft: "Draft",
   preparing: "Preparing",

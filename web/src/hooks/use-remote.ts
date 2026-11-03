@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 export function useRemote<T>(path: string, body?: unknown) {
   const [data, setData] = useState<T>();
@@ -23,5 +23,6 @@ export function useRemote<T>(path: string, body?: unknown) {
       });
     return () => controller.abort();
   }, [path, serialized, revision]);
-  return { data, error, reload: () => setRevision((n) => n + 1) };
+  const reload = useCallback(() => setRevision((n) => n + 1), []);
+  return { data, error, reload };
 }

@@ -25,7 +25,7 @@ fn existing_version_one_database_upgrades_once_without_changing_records() {
         database
             .pragma_query_value::<u32, _>(None, "user_version", |row| row.get(0))
             .unwrap(),
-        3
+        4
     );
     assert_eq!(
         get::<serde_json::Value>(&database, "migration_fixture", "deployed")
@@ -56,13 +56,13 @@ fn existing_version_one_database_upgrades_once_without_changing_records() {
 #[test]
 fn newer_database_versions_are_rejected_without_resetting_them() {
     let mut database = Connection::open_in_memory().unwrap();
-    database.pragma_update(None, "user_version", 4).unwrap();
+    database.pragma_update(None, "user_version", 5).unwrap();
     assert!(crate::storage::database::migrate(&mut database).is_err());
     assert_eq!(
         database
             .pragma_query_value::<u32, _>(None, "user_version", |row| row.get(0))
             .unwrap(),
-        4
+        5
     );
 }
 
@@ -75,6 +75,7 @@ fn deployed_accounts_shares_and_uploaded_bytes_survive_upgrade() {
     database
         .execute_batch("DROP INDEX removed_files_by_share; PRAGMA user_version=1;")
         .unwrap();
+    database.execute("UPDATE objects SET data=json_remove(data,'$.delete_after_download') WHERE kind='share'", []).unwrap();
     let credential = |id: &str, session: bool| {
         serde_json::json!({
             "id": id, "user": fixture.actor.user.id, "name": "legacy", "csrf": "csrf",

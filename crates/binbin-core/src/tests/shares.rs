@@ -11,6 +11,7 @@ fn reservations_include_drafts_and_zip_and_do_not_evict() {
         .unwrap();
     let s = f.draft(None, false);
     let mut n = NewShare {
+        delete_after_download: false,
         title: "Too large".into(),
         files: vec![
             NewFile {
@@ -50,6 +51,7 @@ fn concurrent_reservations_cannot_overcommit() {
                 app.create_share(
                     &actor,
                     NewShare {
+                        delete_after_download: false,
                         title: "test".into(),
                         files: vec![NewFile {
                             name: "a".into(),
@@ -81,6 +83,7 @@ fn unsafe_and_duplicate_filenames_rejected() {
                 .create_share(
                     &f.actor,
                     NewShare {
+                        delete_after_download: false,
                         title: "bad".into(),
                         files: vec![NewFile {
                             name: name.into(),

@@ -79,6 +79,18 @@ pub(super) async fn inspect(
     })
     .await
 }
+pub(super) async fn download_status(
+    State(app): State<App>,
+    h: HeaderMap,
+    Path(id): Path<String>,
+) -> Result<axum::response::Response> {
+    let observer = work(app, move |app| {
+        let actor = identity(&app, &h, false)?;
+        app.observe_share_download(&actor, &id)
+    })
+    .await?;
+    Ok(super::downloads::status_response(observer))
+}
 #[derive(Deserialize)]
 pub(super) struct Offset {
     offset: u64,

@@ -14,6 +14,7 @@ fn account_disable_invalidates_sessions_but_not_shares() {
         .create_share(
             &a,
             NewShare {
+                delete_after_download: false,
                 title: "hello".into(),
                 files: vec![NewFile {
                     name: "empty".into(),
@@ -87,6 +88,7 @@ fn a_signed_out_session_cannot_mutate_shares() {
             .create_share(
                 &fixture.actor,
                 crate::models::NewShare {
+                    delete_after_download: false,
                     title: "Unauthorized draft".into(),
                     files: vec![crate::models::NewFile {
                         name: "empty".into(),

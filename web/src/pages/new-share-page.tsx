@@ -5,7 +5,7 @@ import { useRemote } from "@/hooks/use-remote";
 import { Upload } from "lucide-react";
 import { collectionErrors } from "@/transfers/upload-manager";
 import { fileCount, optionalNumber } from "@/lib/format";
-import { Field } from "@/components/forms";
+import { CheckField, Field } from "@/components/forms";
 import { FilePicker } from "@/components/file-picker";
 import { Button } from "@/components/ui/button";
 import type { Limits, NewShare } from "@/types/api";
@@ -14,6 +14,9 @@ export function NewSharePage() {
   const { uploads, navigate } = useApp();
   const collection = uploads.get("new")!;
   const [title, setTitle] = useState(collection.details?.title ?? "");
+  const [deleteAfterDownload, setDeleteAfterDownload] = useState(
+    collection.details?.delete_after_download === "on",
+  );
   const busy = collection.creating;
   const files = collection.items.filter((item) => !item.removedAt);
   useEffect(() => {
@@ -62,7 +65,8 @@ export function NewSharePage() {
           const body: Omit<NewShare, "files"> = {
             title: String(v.get("title")),
             days: optionalNumber(v.get("days")),
-            limit: optionalNumber(v.get("limit")),
+            limit: deleteAfterDownload ? null : optionalNumber(v.get("limit")),
+            delete_after_download: deleteAfterDownload,
             password: String(v.get("password") || "") || null,
           };
           void uploads.create(body, (id) => {
@@ -89,6 +93,20 @@ export function NewSharePage() {
               required
               maxLength={200}
             />
+            <CheckField
+              label="Delete after download"
+              name="delete_after_download"
+              checked={deleteAfterDownload}
+              onCheckedChange={setDeleteAfterDownload}
+              disabled={busy}
+            />
+            {deleteAfterDownload && (
+              <p className="fine muted">
+                Delete the files and share details after the first complete
+                download. Recipients download all files together. This setting
+                locks when you publish.
+              </p>
+            )}
             <div className="field-pair">
               <Field
                 label="Expires after (days)"
@@ -102,21 +120,25 @@ export function NewSharePage() {
                 placeholder="No deadline"
                 disabled={busy}
               />
-              <Field
-                label="Download allowance"
-                name="limit"
-                defaultValue={collection.details?.limit ?? ""}
-                type="number"
-                min={1}
-                max={settings.max_downloads ?? undefined}
-                placeholder="Unlimited"
-                disabled={busy}
-              />
+              {!deleteAfterDownload && (
+                <Field
+                  label="Download allowance"
+                  name="limit"
+                  defaultValue={collection.details?.limit ?? ""}
+                  type="number"
+                  min={1}
+                  max={settings.max_downloads ?? undefined}
+                  placeholder="Unlimited"
+                  disabled={busy}
+                />
+              )}
             </div>
-            <p className="fine muted">
-              Leave a limit blank for unlimited. The first limit reached ends
-              the share.
-            </p>
+            {!deleteAfterDownload && (
+              <p className="fine muted">
+                Leave a limit blank for unlimited. The first limit reached ends
+                the share.
+              </p>
+            )}
             <Field
               label={
                 <>
@@ -132,10 +154,12 @@ export function NewSharePage() {
               placeholder="At least 12 characters"
               disabled={busy}
             />
-            <p className="fine muted">
-              Each file download uses one allowance. The complete ZIP also uses
-              one.
-            </p>
+            {!deleteAfterDownload && (
+              <p className="fine muted">
+                Each file download uses one allowance. The complete ZIP also
+                uses one.
+              </p>
+            )}
             <Button
               className="full"
               variant="default"

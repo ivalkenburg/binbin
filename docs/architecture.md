@@ -55,6 +55,12 @@ On Unix, file creation and archive publication flush the relevant directory entr
 
 The source reorganization does not move the Docker data volume or change the public API. Full backup and restore procedures are described in the README and lifecycle details in [specification.md](specification.md).
 
+## Delete after download
+
+Delete-after-download shares use a separate lifecycle in `services/deletion.rs`. SQLite serializes a durable transfer reservation and merged delivered ranges; an in-process lease prevents concurrent streaming even under the same credential. The HTTP body checkpoints on the blocking pool, reserves disconnected transfers for 15 minutes, and commits revocation only after EOF covers the complete resource. Deletion GETs use streaming framing to require an EOF poll, including for empty files. A durable active-response marker distinguishes crash recovery from clean interruption; a resume beyond the recorded contiguous prefix after a crash receives a full response so native clients retransmit missing progress. Revocation commits before filesystem cleanup so deletion failures cannot reopen access. Completed downloads purge only their own share; partial responses skip cleanup. Maintenance retries pending deletion shares in independent transactions before ordinary maintenance, so an unrelated filesystem failure cannot block their removal. Purges remove all share-related objects instead of retaining ordinary history. Migration 0004 explicitly keeps the policy disabled on existing shares.
+
+Live status responses use weakly held in-memory observers. A subscriber registers before downloading and receives a transient completion receipt after cleanup commits, without persisting a deleted share or credential. Observer registrations are removed on disconnect. Owner/admin subscriptions use authenticated ownership checks; public subscriptions use the transfer capability. The browser closes observers when leaving the page and clears saved public capabilities after deletion.
+
 ## Tests
 
 Core unit tests are grouped by service with shared private fixtures. Server tests cover HTTP behavior and asset delivery. Playwright scenarios live in `web/tests/e2e/` and use the server package's isolated test example, not the running Docker application.

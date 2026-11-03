@@ -12,7 +12,8 @@ export async function seed(page, options = {}) {
         title: options.title || "Design review files",
         files: [{ name: options.filename || "handover.txt", size: 5 }],
         days: 7,
-        limit: options.limit ?? 10,
+        limit: options.deleteAfterDownload ? null : (options.limit ?? 10),
+        delete_after_download: options.deleteAfterDownload ?? false,
         password: options.password || null,
       }),
     });

@@ -16,7 +16,7 @@ Private, administrator-created uploader accounts. Recipients download without ac
 
 ## Product Purpose
 
-Upload a fixed batch, publish a link, and control its lifetime by deadline and download allowance. The browser supports interrupted transfers.
+Upload a fixed batch, publish a link, and control its lifetime by deadline, download allowance, or optional deletion after one complete download. The browser supports interrupted transfers.
 
 ## Operating Context
 
@@ -24,9 +24,11 @@ Self-hosted behind an HTTPS reverse proxy. Single application instance; no publi
 
 ## Capabilities and Constraints
 
-Private editable resumable drafts; uploader image previews; additive file selection and screenshot paste; explicit publication; prebuilt uncompressed ZIPs; storage reservations; configurable limits; dashboard; named API tokens; 30-day minimal history. Recipients can open published files in the browser using the same transfer allowance as downloads. See ../README.md and specification.md for the agreed lifecycle and test coverage. No separate uncharged recipient previews, S3, scanning, OIDC, recovery bin, notifications, or per-user quotas in this release.
+Private editable resumable drafts; uploader image previews; additive file selection and screenshot paste; explicit publication; prebuilt uncompressed ZIPs; storage reservations; configurable limits; dashboard; named API tokens; 30-day minimal history for ordinary shares. Recipients can open ordinary published files in the browser using the same transfer allowance as downloads. See ../README.md and specification.md for the agreed lifecycle and test coverage. No separate uncharged recipient previews, S3, scanning, OIDC, recovery bin, notifications, or per-user quotas in this release.
 
 ## Brand Commitments
+
+Delete after download is off by default and locks at publication. Recipients get one file or one ZIP, without inline previews. The first recipient reserves the transfer, with 15 minutes to resume after interruption. Completed delivery, expiration, or manual deletion removes files and all share records without history. Management previews and downloads are exempt. Existing ordinary shares retain their established behavior and history.
 
 Name: Binbin. Compact responsive task interface, searchable shares, system light/dark theme, keyboard navigation, clear progress and cancellation. These choices were explicitly approved in the grilling interview. The latest approved direction uses shadcn/ui Base UI components with the user-supplied OKLCH light/dark theme: neutral surfaces, green primary actions, semantic destructive treatments, compact feedback, and no unnecessary horizontal scrolling. This replaces the earlier strictly neutral palette.
 

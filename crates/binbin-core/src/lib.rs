@@ -9,6 +9,7 @@ mod storage;
 
 pub use app::App;
 pub use error::{Error, Result};
+pub use services::deletion::{DownloadLease, DownloadObservation};
 pub const DAY: i64 = 86_400;
 pub const CHUNK: usize = 8 * 1024 * 1024;
 

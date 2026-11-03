@@ -1,15 +1,56 @@
 use crate::{
     App, DAY,
     error::Result,
-    models::{Credential, Share, Transfer},
-    storage::database::{all, put, remove},
+    models::{Credential, DownloadReservation, Share, Transfer},
+    storage::database::{all, get, put, remove, remove_share_records},
 };
+use rusqlite::Connection;
 use std::{
     collections::{HashMap, HashSet},
     fs,
 };
 
 impl App {
+    fn deletion_cleanup_due(&self, share: &Share) -> bool {
+        share.delete_after_download
+            && (matches!(
+                self.state(share).as_str(),
+                "expired" | "exhausted" | "revoked" | "deleting"
+            ) || share.state == "draft" && share.created + DAY <= self.now())
+    }
+
+    fn purge_deletion_share_in(&self, db: &Connection, share: &Share) -> Result<Option<String>> {
+        let path = self.root.join(&share.id);
+        if path.exists() {
+            fs::remove_dir_all(path)?;
+        }
+        let completed = if share.state == "deleting" {
+            get::<DownloadReservation>(db, "download_reservation", &share.id)?
+                .map(|reservation| reservation.transfer)
+        } else {
+            None
+        };
+        remove_share_records(db, &share.id)?;
+        Ok(completed)
+    }
+
+    pub(crate) fn cleanup_deletion_share(&self, id: &str) -> Result<()> {
+        let removed = self.db(|db| {
+            let Some(share) = get::<Share>(db, "share", id)? else {
+                return Ok(None);
+            };
+            if !self.deletion_cleanup_due(&share) {
+                return Ok(None);
+            }
+            let completed = self.purge_deletion_share_in(db, &share)?;
+            Ok(Some((share.id, completed)))
+        })?;
+        if let Some((id, completed)) = removed {
+            self.notify_download_removed(&id, completed.as_deref());
+        }
+        Ok(())
+    }
+
     pub fn recover_publications(&self) -> Result<()> {
         self.db(|db| {
             for mut share in all::<Share>(db, "share")? {
@@ -28,7 +69,24 @@ impl App {
         })
     }
     pub fn cleanup(&self) -> Result<()> {
-        self.db(|db| {
+        // Commit each deletion independently before ordinary maintenance. One
+        // inaccessible directory must not roll back other shares' removals or
+        // prevent a completed share's later cleanup retry.
+        let pending = self.db(|db| {
+            Ok(all::<Share>(db, "share")?
+                .into_iter()
+                .filter(|share| self.deletion_cleanup_due(share))
+                .map(|share| share.id)
+                .collect::<Vec<_>>())
+        })?;
+        let mut deletion_error = None;
+        for id in pending {
+            if let Err(error) = self.cleanup_deletion_share(&id) {
+                deletion_error.get_or_insert(error);
+            }
+        }
+        let removed = self.db(|db| {
+            let mut removed = Vec::new();
             let now = self.now();
             for c in all::<Credential>(db, "credential")? {
                 if c.expires <= now {
@@ -81,8 +139,16 @@ impl App {
                 }
                 let state = self.state(&s);
                 let draft_dead = s.state == "draft" && s.created + DAY <= now;
-                let dead =
-                    draft_dead || matches!(state.as_str(), "expired" | "exhausted" | "revoked");
+                let dead = draft_dead
+                    || matches!(
+                        state.as_str(),
+                        "expired" | "exhausted" | "revoked" | "deleting"
+                    );
+                if dead && s.delete_after_download {
+                    let completed = self.purge_deletion_share_in(db, &s)?;
+                    removed.push((s.id.clone(), completed));
+                    continue;
+                }
                 if dead {
                     if s.removed.is_none() {
                         s.removed = Some(now);
@@ -147,7 +213,11 @@ impl App {
                     fs::remove_dir_all(entry.path())?;
                 }
             }
-            Ok(())
-        })
+            Ok(removed)
+        })?;
+        for (share, completed) in removed {
+            self.notify_download_removed(&share, completed.as_deref());
+        }
+        deletion_error.map_or(Ok(()), Err)
     }
 }

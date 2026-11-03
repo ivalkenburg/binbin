@@ -31,6 +31,19 @@ impl App {
             return Err(bad("An idempotency key of 16–200 characters is required"));
         }
         let issue = |db: &rusqlite::Connection, s: Share| {
+            if s.delete_after_download && a.is_none() {
+                let files = self.files_in(db, id)?;
+                let expected = if files.len() > 1 {
+                    "zip"
+                } else {
+                    files.first().map_or("", |f| f.id.as_str())
+                };
+                if resource != expected {
+                    return Err(bad(
+                        "This share must be downloaded together; file previews are unavailable",
+                    ));
+                }
+            }
             if resource == "zip" {
                 if s.zip_hash.is_none() {
                     return Err(unavailable());
@@ -126,6 +139,7 @@ impl App {
             if !self.transfer_credential_valid_in(db, &t)? {
                 return Err(unavailable());
             }
+            self.check_download_reservation_in(db, &s, &t)?;
             if t.expires <= self.now()
                 || s.version != t.version
                 || s.expires.is_some_and(|e| e <= self.now())
@@ -137,7 +151,7 @@ impl App {
                 if !t.management && s.limit.is_some_and(|n| s.used >= n) {
                     return Err(unavailable());
                 }
-                if !t.management {
+                if !t.management && !s.delete_after_download {
                     s.used += 1;
                     put(db, "share", &s.id, &s)?;
                 }

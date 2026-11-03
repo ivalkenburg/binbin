@@ -35,10 +35,12 @@ export interface DownloadRequest {
   scope: string;
   password?: string | null;
   signal: AbortSignal;
+  onPrepared?: (href: string) => Promise<void>;
 }
 export function download(request: DownloadRequest) {
   return coalesce(pendingDownloads, request, async () => {
     const href = await prepareDownload(request);
+    await request.onPrepared?.(href);
     triggerDownload(href, request.signal);
     return href;
   });
@@ -176,7 +178,7 @@ export async function recoverPublicDownloads(
       method: "HEAD",
       signal,
     });
-    if (response.status === 401 || response.status === 404) continue;
+    if ([401, 404, 409].includes(response.status)) continue;
     if (!response.ok)
       throw new Error(
         "Couldn’t check previous downloads. Check your connection and try again.",
@@ -216,4 +218,81 @@ function triggerDownload(href: string, signal: AbortSignal) {
   document.body.append(anchor);
   anchor.click();
   anchor.remove();
+}
+
+export type DownloadState =
+  | "blocked"
+  | "available"
+  | "downloading"
+  | "deleting"
+  | "interrupted"
+  | "deleted"
+  | "unavailable"
+  | "connection-error";
+
+/** Subscribe before dispatching the native download, so even a tiny file's
+ * deletion receipt reaches the live page without retaining server history. */
+export async function observeDownload(
+  path: string,
+  signal: AbortSignal,
+  onState: (state: DownloadState) => void,
+) {
+  const response = await fetch(path, { signal });
+  if (!response.ok || !response.body)
+    throw new ApiError(
+      "Couldn’t check download status. Reopen the share and try again.",
+      response.status,
+    );
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  async function next(): Promise<string | undefined> {
+    while (!buffer.includes("\n")) {
+      const chunk = await reader.read();
+      if (chunk.done) return undefined;
+      buffer += decoder.decode(chunk.value, { stream: true });
+    }
+    const end = buffer.indexOf("\n");
+    const line = buffer.slice(0, end);
+    buffer = buffer.slice(end + 1);
+    return (JSON.parse(line) as { state: string }).state;
+  }
+  try {
+    if ((await next()) !== "ready")
+      throw new Error("Couldn’t observe this download.");
+  } catch (error) {
+    await reader.cancel().catch(() => {});
+    throw error;
+  }
+  void (async () => {
+    try {
+      while (!signal.aborted) {
+        const state = await next();
+        if (!state) throw new Error("Download status disconnected");
+        onState(state as DownloadState);
+        if (
+          state === "deleted" ||
+          state === "unavailable" ||
+          state === "blocked"
+        )
+          return;
+      }
+    } catch {
+      if (!signal.aborted) onState("connection-error");
+    } finally {
+      await reader.cancel().catch(() => {});
+    }
+  })();
+}
+
+export function forgetPublicDownloads(shareId: string) {
+  const prefix = `binbin:${shareId}:`;
+  for (const key of memory.keys())
+    if (key.startsWith(prefix)) memory.delete(key);
+  try {
+    for (const key of Object.keys(sessionStorage))
+      if (key.startsWith(prefix)) sessionStorage.removeItem(key);
+  } catch {
+    /* Storage may be unavailable. */
+  }
 }

@@ -197,6 +197,7 @@ fn previews_require_complete_authorized_images_and_do_not_charge_downloads() {
         .create_share(
             &f.actor,
             NewShare {
+                delete_after_download: false,
                 title: "Images".into(),
                 files: vec![NewFile {
                     name: "image.png".into(),

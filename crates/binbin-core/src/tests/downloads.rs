@@ -80,6 +80,8 @@ fn time_deadline_overrides_retry_credentials() {
             &f.actor,
             id,
             EditShare {
+                delete_after_download: None,
+                days: None,
                 title: "Project files".into(),
                 expires: Some(f.app.now() + 10),
                 limit: None,
@@ -104,6 +106,8 @@ fn password_changes_invalidate_existing_transfers() {
             &f.actor,
             id,
             EditShare {
+                delete_after_download: None,
+                days: None,
                 title: "Project files".into(),
                 expires: None,
                 limit: None,
@@ -406,6 +410,8 @@ fn public_access_rechecks_a_concurrent_password_change_without_holding_the_datab
                         &f.actor,
                         id,
                         EditShare {
+                            delete_after_download: None,
+                            days: None,
                             title: "Project files".into(),
                             expires: None,
                             limit: None,
@@ -455,6 +461,8 @@ fn public_access_rechecks_a_concurrent_password_change_without_holding_the_datab
                         &actor,
                         &edit_id,
                         EditShare {
+                            delete_after_download: None,
+                            days: None,
                             title: "New title".into(),
                             expires: None,
                             limit: None,
@@ -537,6 +545,8 @@ fn unavailable_public_shares_return_404_before_password_errors() {
             &f.actor,
             id,
             EditShare {
+                delete_after_download: None,
+                days: None,
                 title: "Private files".into(),
                 expires: Some(f.app.now() + 10),
                 limit: None,

@@ -10,6 +10,10 @@ pub(crate) fn migrate(db: &mut Connection) -> Result<()> {
             3,
             include_str!("../../migrations/0003_remove_api_tokens.sql"),
         ),
+        (
+            4,
+            include_str!("../../migrations/0004_delete_after_download.sql"),
+        ),
     ];
     let transaction = db.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
     let current: u32 = transaction.pragma_query_value(None, "user_version", |row| row.get(0))?;
@@ -57,6 +61,17 @@ pub fn remove(db: &Connection, kind: &str, id: &str) -> Result<()> {
     db.execute(
         "DELETE FROM objects WHERE kind=? AND id=?",
         params![kind, id],
+    )?;
+    Ok(())
+}
+
+pub(crate) fn remove_share_records(db: &Connection, id: &str) -> Result<()> {
+    db.execute(
+        "DELETE FROM objects WHERE
+         (kind IN ('share','download_reservation') AND id=?1) OR
+         (kind IN ('file','transfer') AND json_extract(data,'$.share')=?1) OR
+         (kind='removed_file' AND json_extract(data,'$.file.share')=?1)",
+        [id],
     )?;
     Ok(())
 }

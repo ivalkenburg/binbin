@@ -9,7 +9,7 @@ import {
 import { LinkButton } from "@/components/link-button";
 import { IconButton } from "@/components/icon-button";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Copy, Files, Upload, Plus, Search } from "lucide-react";
 import { useApp } from "@/app/context";
 import { useRemote } from "@/hooks/use-remote";
@@ -38,6 +38,13 @@ const deadline = (s: Share) =>
     : date(s.expires);
 export function DashboardPage() {
   const shares = useRemote<Share[]>("/api/shares");
+  const hasDeleteShares = shares.data?.some((s) => s.delete_after_download);
+  const reloadShares = shares.reload;
+  useEffect(() => {
+    if (!hasDeleteShares) return;
+    const timer = setInterval(reloadShares, 5000);
+    return () => clearInterval(timer);
+  }, [hasDeleteShares, reloadShares]);
   const { notify } = useApp();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
@@ -145,15 +152,24 @@ export function DashboardPage() {
                 <small>
                   {fileCount(s.files.length)}
                   {s.password_protected ? " · Password protected" : ""}
+                  {s.delete_after_download ? " · Delete after download" : ""}
                 </small>
               </span>
             </div>
             <span className="size">{bytes(s.original_size)}</span>
             <span className="downloads">
-              {s.used} / {s.limit ?? "unlimited"}
+              {s.delete_after_download
+                ? "One download"
+                : `${s.used} / ${s.limit ?? "unlimited"}`}
             </span>
             <span className="deadline">{deadline(s)}</span>
-            <Status state={s.state} />
+            <Status
+              state={
+                s.delete_after_download && s.downloading
+                  ? "downloading"
+                  : s.state
+              }
+            />
             <span className="row-actions">
               {s.state === "active" && (
                 <IconButton

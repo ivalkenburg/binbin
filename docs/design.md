@@ -361,6 +361,16 @@ The inline administrator password-reset form names the target account in its hea
 
 Share editing replaces the read-only settings summary and includes Cancel. The deletion flow opens a confirmation dialog titled with the share name, a destructive description (“This permanently removes access and files. There is no undo.”), Keep share, and Confirm deletion. Keep the whole warning visible and distinct from floating feedback; do not replace this with a routine toast. Active shares lead their settings panel with the share link and a primary Copy link action. Drafts show a sticky publish bar with the upload count and Publish share, and an outlined time-left badge beside the status.
 
+## Delete after download
+
+Use a labeled checkbox in Share details, unchecked by default. When checked, replace the numeric allowance with adjacent help: “Delete the files and share details after the first complete download.” Explain whole-share delivery and that publication locks the setting. Draft settings are editable; published edit forms state whether the policy is enabled and locked. Keep the existing publish action without another confirmation dialog.
+
+Repeat “Delete after download” in draft summaries, publish feedback, published link blocks, share headings, and dashboard metadata. Dashboard allowance text becomes “One download”; an active or reserved transfer shows “Downloading”. Management file controls remain available, with a short explanation that owner/admin previews and downloads do not trigger deletion, while public links follow recipient rules. Deleted shares disappear from lists and history; a subscribed open detail page returns to Shares with a transient “Deleted after download” notice.
+
+After unlocking any password gate, recipient pages show the policy badge and the inline warning “Download once. Then this share is deleted.” List filenames and sizes as static text. Offer one green “Download file once” or “Download ZIP once” action. Use the shared shadcn primitives, existing semantic theme, and responsive recipient card. No preview links or individual multi-file controls appear.
+
+During delivery, show “Download in progress” and point to the browser's downloads without claiming client completion. On interruption, explain the 15-minute reservation, native browser resume, and Retry download. Other recipients see “Download already in progress” and Check again. If live status disconnects, explain that the browser download may still be running and offer Check again. The live deletion receipt shows “Deleted after download” with no filenames; fresh visits show the existing generic Share unavailable state. Temporary server/network failures retain their retry behavior. Copy link still copies only the URL, and administration gains no additional global toggle.
+
 ## Do's and Don'ts
 
 ### Do:

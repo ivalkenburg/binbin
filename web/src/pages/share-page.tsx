@@ -24,7 +24,8 @@ import {
 import { useApp } from "@/app/context";
 import { useRemote } from "@/hooks/use-remote";
 import { useTask } from "@/hooks/use-task";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
+import { observeDownload, type DownloadState } from "@/transfers/download";
 import {
   DRAFT_LIFETIME,
   bytes,
@@ -58,8 +59,38 @@ import { FileList } from "@/components/file-list";
 import { collectionErrors } from "@/transfers/upload-manager";
 import type { Limits, Share } from "@/types/api";
 export function SharePage({ id }: { id: string }) {
-  const { uploads } = useApp();
+  const { uploads, notify, navigate } = useApp();
+  const [downloadState, setDownloadState] =
+    useState<DownloadState>("available");
   const { data: remote, error, reload } = useRemote<Share>(`/api/shares/${id}`);
+  useEffect(() => {
+    if (!remote?.delete_after_download || remote.state !== "active") return;
+    const controller = new AbortController();
+    void observeDownload(
+      `/api/shares/${id}/status`,
+      controller.signal,
+      (state) => {
+        if (controller.signal.aborted) return;
+        setDownloadState(state);
+        if (state === "deleted" || state === "unavailable") {
+          uploads.forget(id);
+          navigate("shares");
+          notify(
+            state === "deleted" ? "Deleted after download." : "Share removed.",
+          );
+        }
+      },
+    ).catch(() => {});
+    return () => controller.abort();
+  }, [
+    id,
+    remote?.delete_after_download,
+    remote?.state,
+    remote?.version,
+    uploads,
+    navigate,
+    notify,
+  ]);
   useEffect(() => {
     if (remote) uploads.hydrate(remote);
   }, [remote, uploads]);
@@ -69,7 +100,23 @@ export function SharePage({ id }: { id: string }) {
     (!remote || remote.state === "draft" || cached.version > remote.version)
       ? cached
       : remote;
+  if (error instanceof ApiError && error.status === 404)
+    return (
+      <Panel>
+        <h1>Share unavailable</h1>
+        <p className="muted">It may have expired or been removed.</p>
+      </Panel>
+    );
   if (!share) return <Loading error={error} />;
+  if (downloadState === "deleting")
+    return (
+      <Panel>
+        <h1>Deleting share</h1>
+        <p className="muted">
+          Access is closed. The server is removing the files and share details.
+        </p>
+      </Panel>
+    );
   const downloadable = ["active", "exhausted"].includes(share.state);
   return (
     <>
@@ -83,6 +130,12 @@ export function SharePage({ id }: { id: string }) {
         titleSuffix={
           <>
             <Status state={share.state} className="heading-badge" />
+            {share.delete_after_download && (
+              <Badge variant="secondary">Delete after download</Badge>
+            )}
+            {share.delete_after_download && downloadState === "downloading" && (
+              <Badge variant="secondary">Downloading</Badge>
+            )}
             {share.state === "draft" && (
               <Badge
                 variant="outline"
@@ -98,6 +151,12 @@ export function SharePage({ id }: { id: string }) {
       <RefreshError error={error} retry={reload} />
       <div className="share-detail-layout">
         <Panel className="work-area" title="Files">
+          {share.delete_after_download && downloadable && (
+            <p className="fine muted">
+              Owner and administrator previews and downloads do not trigger
+              deletion. Public links follow recipient rules.
+            </p>
+          )}
           {share.state === "draft" ? (
             <DraftFiles share={share} />
           ) : (
@@ -208,7 +267,11 @@ function PublishShare({ share, reload }: { share: Share; reload: () => void }) {
           .publish(share.id)
           .then(() => {
             reload();
-            notify("Your share is ready. Copy the link to send it.");
+            notify(
+              share.delete_after_download
+                ? "Your share is ready. Delete after download is enabled."
+                : "Your share is ready. Copy the link to send it.",
+            );
           })
           .catch(() => {})
       }
@@ -226,6 +289,9 @@ function ShareSettings({
   reload: () => void;
 }) {
   const [editing, setEditing] = useState(false);
+  const [deleteAfterDownload, setDeleteAfterDownload] = useState(
+    s.delete_after_download,
+  );
   const [confirming, setConfirming] = useState(false);
   const [copied, setCopied] = useState(false);
   useEffect(() => {
@@ -234,7 +300,7 @@ function ShareSettings({
     return () => clearTimeout(timer);
   }, [copied]);
   const { run, pending } = useTask();
-  const { notify, uploads } = useApp();
+  const { notify, uploads, navigate } = useApp();
   const link = useRef<HTMLInputElement>(null);
   return (
     <Panel className="share-options">
@@ -257,6 +323,9 @@ function ShareSettings({
       <div id="share-overview" hidden={editing}>
         {s.state === "active" && (
           <div className="share-link-block">
+            {s.delete_after_download && (
+              <Badge variant="secondary">Delete after download</Badge>
+            )}
             <FieldRoot>
               <FieldLabel htmlFor="share-url">Share link</FieldLabel>
               <InputGroup>
@@ -306,7 +375,12 @@ function ShareSettings({
               "Deadline",
               s.state === "draft" ? "Starts at publication" : date(s.expires),
             ],
-            ["Downloads", `${s.used} / ${s.limit ?? "unlimited"}`],
+            [
+              "Downloads",
+              s.delete_after_download
+                ? "One complete download"
+                : `${s.used} / ${s.limit ?? "unlimited"}`,
+            ],
             ["Storage reserved", bytes(s.reserved)],
             ["Password", s.password_protected ? "Required" : "None"],
           ].map(([label, value]) => (
@@ -316,12 +390,24 @@ function ShareSettings({
             </div>
           ))}
         </dl>
-        {s.state === "active" && (
+        {s.delete_after_download && (
+          <p className="fine muted">
+            Delete the files and all share details after the first complete
+            download.
+            {s.state === "draft"
+              ? " Recipients get one file or one ZIP. This setting locks when you publish."
+              : " This setting is locked."}
+          </p>
+        )}
+        {["active", "draft"].includes(s.state) && (
           <Button
             variant="outline"
             className="full"
             data-action="edit"
-            onClick={() => setEditing(true)}
+            onClick={() => {
+              setDeleteAfterDownload(s.delete_after_download);
+              setEditing(true);
+            }}
           >
             <Pencil aria-hidden="true" />
             Edit settings
@@ -336,22 +422,35 @@ function ShareSettings({
               event.preventDefault();
               const values = new FormData(event.currentTarget);
               void run(async (signal) => {
-                await api(`/api/shares/${s.id}`, {
-                  method: "PATCH",
-                  signal,
-                  body: {
-                    title: values.get("title"),
-                    expires: values.get("expires")
-                      ? Math.floor(
-                          new Date(String(values.get("expires"))).getTime() /
-                            1000,
-                        )
-                      : null,
-                    limit: optionalNumber(values.get("limit")),
-                    password: values.get("password") || null,
-                    change_password: values.has("change_password"),
-                  },
-                });
+                const body = {
+                  title: values.get("title"),
+                  expires: values.get("expires")
+                    ? Math.floor(
+                        new Date(String(values.get("expires"))).getTime() /
+                          1000,
+                      )
+                    : null,
+                  limit: deleteAfterDownload
+                    ? null
+                    : optionalNumber(values.get("limit")),
+                  delete_after_download: deleteAfterDownload,
+                  days:
+                    s.state === "draft"
+                      ? optionalNumber(values.get("days"))
+                      : undefined,
+                  password: values.get("password") || null,
+                  change_password: values.has("change_password"),
+                };
+                if (s.state === "draft")
+                  await uploads.editSettings(s.id, body, signal);
+                else {
+                  const updated = await api<Share>(`/api/shares/${s.id}`, {
+                    method: "PATCH",
+                    signal,
+                    body,
+                  });
+                  uploads.hydrate(updated);
+                }
                 reload();
                 setEditing(false);
                 notify("Share settings saved.");
@@ -366,20 +465,49 @@ function ShareSettings({
               required
               autoFocus
             />
-            <Field
-              label="Deadline"
-              name="expires"
-              type="datetime-local"
-              defaultValue={s.expires ? localDate(s.expires) : ""}
-            />
-            <Field
-              label="Total download allowance"
-              name="limit"
-              type="number"
-              min={1}
-              defaultValue={s.limit ?? ""}
-              placeholder="Unlimited"
-            />
+            {s.state === "draft" ? (
+              <>
+                <CheckField
+                  label="Delete after download"
+                  name="delete_after_download"
+                  checked={deleteAfterDownload}
+                  onCheckedChange={setDeleteAfterDownload}
+                  disabled={pending}
+                />
+                <Field
+                  label="Expires after (days)"
+                  name="days"
+                  type="number"
+                  min={1}
+                  defaultValue={s.days ?? ""}
+                  placeholder="No deadline"
+                />
+              </>
+            ) : (
+              <>
+                <Field
+                  label="Deadline"
+                  name="expires"
+                  type="datetime-local"
+                  defaultValue={s.expires ? localDate(s.expires) : ""}
+                />
+                <p className="fine muted">
+                  Delete after download:{" "}
+                  {s.delete_after_download ? "enabled" : "disabled"}. Locked
+                  after publication.
+                </p>
+              </>
+            )}
+            {!deleteAfterDownload && (
+              <Field
+                label="Total download allowance"
+                name="limit"
+                type="number"
+                min={1}
+                defaultValue={s.limit ?? ""}
+                placeholder="Unlimited"
+              />
+            )}
             <CheckField
               label="Replace or remove password"
               name="change_password"
@@ -447,7 +575,10 @@ function ShareSettings({
                           signal,
                         });
                         setConfirming(false);
-                        reload();
+                        if (s.delete_after_download) {
+                          uploads.forget(s.id);
+                          navigate("shares");
+                        } else reload();
                         notify("Share removed.");
                       })
                     }

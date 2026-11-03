@@ -1,4 +1,5 @@
 mod accounts;
+mod deletion;
 mod downloads;
 mod drafts;
 mod maintenance;

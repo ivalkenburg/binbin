@@ -415,6 +415,16 @@ dd {
   font-size: 12px;
   color: var(--muted-foreground);
 }
+
+.delete-download-notice {
+  margin-block: 16px;
+  padding: 12px;
+  border-radius: var(--radius);
+  background: var(--secondary);
+}
+.delete-download-notice p {
+  margin: 4px 0 0;
+}
 .recipient-limits > span {
   min-width: 0;
   overflow-wrap: anywhere;

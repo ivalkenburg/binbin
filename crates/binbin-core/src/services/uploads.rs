@@ -97,7 +97,15 @@ impl App {
                 return Err(bad("Draft is no longer publishable"));
             }
             let settings: Settings = get(db, "settings", "instance")?.unwrap_or_default();
-            self.check_limits(&settings, share.days, share.limit)?;
+            self.check_limits(
+                &settings,
+                share.days,
+                if share.delete_after_download {
+                    Some(1)
+                } else {
+                    share.limit
+                },
+            )?;
             let files = self.files_in(db, id)?;
             if files.is_empty() {
                 return Err(bad("Add at least one file before publishing"));
@@ -184,7 +192,15 @@ impl App {
                     return Err(unavailable());
                 }
                 let settings: Settings = get(db, "settings", "instance")?.unwrap_or_default();
-                self.check_limits(&settings, s.days, s.limit)?;
+                self.check_limits(
+                    &settings,
+                    s.days,
+                    if s.delete_after_download {
+                        Some(1)
+                    } else {
+                        s.limit
+                    },
+                )?;
                 for file in &files {
                     put(db, "file", &file.id, file)?;
                 }

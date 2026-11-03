@@ -72,6 +72,7 @@ pub(crate) fn router(app: App) -> Router {
         .route("/api/shares/{id}/publish", post(publish))
         .route("/api/shares/{id}/files", patch(edit_files))
         .route("/api/shares/{id}/transfers", post(management_transfer))
+        .route("/api/shares/{id}/status", get(shares::download_status))
         .route(
             "/api/files/{id}",
             patch(upload).layer(DefaultBodyLimit::max(CHUNK)),
@@ -81,6 +82,7 @@ pub(crate) fn router(app: App) -> Router {
         .route("/api/public/{id}", post(public_share))
         .route("/api/public/{id}/transfers", post(public_transfer))
         .route("/d/{token}", get(download))
+        .route("/d/{token}/status", get(downloads::download_status))
         .fallback(|| async { (StatusCode::NOT_FOUND, Json(json!({"error":"Not found"}))) })
         .layer(DefaultBodyLimit::max(4 * 1024 * 1024))
         .layer(axum_middleware::from_fn_with_state(guard_state, guard))

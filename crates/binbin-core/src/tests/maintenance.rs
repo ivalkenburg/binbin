@@ -37,6 +37,7 @@ fn empty_files_are_downloadable_and_their_directories_are_reclaimed() {
         .create_share(
             &f.actor,
             NewShare {
+                delete_after_download: false,
                 title: "Empty".into(),
                 files: vec![NewFile {
                     name: "empty.txt".into(),
@@ -100,6 +101,7 @@ fn failed_draft_commit_leaves_no_records_and_orphan_files_are_reclaimed() {
             .create_share(
                 &fixture.actor,
                 NewShare {
+                    delete_after_download: false,
                     title: "Interrupted creation".into(),
                     files: vec![NewFile {
                         name: "file.txt".into(),
@@ -153,6 +155,8 @@ fn transfer_tombstones_are_reclaimed_with_obsolete_versions_and_deleted_shares()
             &f.actor,
             id,
             EditShare {
+                delete_after_download: None,
+                days: None,
                 title: "New password".into(),
                 expires: None,
                 limit: None,
@@ -241,6 +245,8 @@ fn cleanup_retains_only_shares_with_eligible_charged_current_version_transfers()
             &f.actor,
             stale_share.share["id"].as_str().unwrap(),
             EditShare {
+                delete_after_download: None,
+                days: None,
                 title: "New version".into(),
                 expires: None,
                 limit: Some(1),
